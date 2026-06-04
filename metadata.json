@@ -1,0 +1,9 @@
+{
+    "uuid": "genshin-resin@snql",
+    "name": "Genshin Resin Tracker",
+    "description": "Shows current Genshin Impact resin energy in the top panel using HoYoLAB API",
+    "shell-version": ["50"],
+    "url": "https://github.com/snql/genshin-extension",
+    "settings-schema": "org.gnome.shell.extensions.genshin-resin",
+    "version": 1
+}
