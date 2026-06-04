@@ -54,7 +54,7 @@ Preferences
 ## Installation
 
 ```bash
-git clone https://github.com/ruslansin/genshin-extension
+git clone https://github.com/ruslansin/genshin-gnome-extension
 cd genshin-extension
 ./install.sh
 ```

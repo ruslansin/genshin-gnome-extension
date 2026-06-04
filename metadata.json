@@ -3,7 +3,7 @@
     "name": "Genshin Resin Tracker",
     "description": "Shows current Genshin Impact resin energy in the top panel using HoYoLAB API",
     "shell-version": ["50"],
-    "url": "https://github.com/ruslansin/genshin-extension",
+    "url": "https://github.com/ruslansin/genshin-gnome-extension",
     "settings-schema": "org.gnome.shell.extensions.genshin-resin",
     "version": 1
 }
