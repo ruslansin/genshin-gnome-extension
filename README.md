@@ -8,6 +8,7 @@ GNOME Shell extension that shows your Genshin Impact real-time resources in the 
 - **Color coding**: green (full), yellow (≥90%), default
 - **Click menu** with full game resource overview:
   - Resin count + time until full
+  - Live next-resin countdown (per-second timer)
   - Daily commissions status
   - Weekly boss discount claims remaining
   - Expedition countdown timers per character
@@ -29,6 +30,7 @@ Click menu:
 
 ```
 ◆ Resin: 28/200  → 22h 48m
+↻ Next resin: 00:03:24
 ✔ Commissions: 4/4 (claimed)
 ⚔ Weekly Bosses: 3/3 remaining
 ───────────────────
