@@ -3,6 +3,12 @@
   <schema id="org.gnome.shell.extensions.genshin-resin"
           path="/org/gnome/shell/extensions/genshin-resin/">
 
+    <key name="accounts" type="s">
+      <default>"[]"</default>
+      <summary>Account list (JSON)</summary>
+      <description>JSON array of account objects. Each object has: name, uid, server, ltuid, ltoken, ltmid, accountId, cookieToken</description>
+    </key>
+
     <key name="uid" type="s">
       <default>"0"</default>
       <summary>Genshin Impact UID</summary>

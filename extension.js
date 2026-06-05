@@ -60,6 +60,10 @@ export default class GenshinResinExtension extends Extension {
         this._session = new Soup.Session();
         this._cachedData = null;
         this._cachedTimestamp = 0;
+        this._resinCache = {maxResin: 200, lastResin: 0, lastUpdate: 0};
+
+        this._loadAccounts();
+        this._activeAccount = 0;
 
         this._indicator = new PanelMenu.Button(0.0, this.metadata.name, false);
 
@@ -86,6 +90,9 @@ export default class GenshinResinExtension extends Extension {
         const position = this._settings.get_int('panel-position');
         const boxSide = this._settings.get_string('panel-box') || 'right';
         Main.panel.addToStatusArea(this.uuid, this._indicator, position, boxSide);
+
+        this._accountsChangedId = this._settings.connect(
+            'changed::accounts', () => this._onAccountsChanged());
 
         this._buildMenu();
         this._updateLabel();
@@ -123,6 +130,12 @@ export default class GenshinResinExtension extends Extension {
         this._session?.abort();
         this._session = null;
 
+        if (this._settings && this._accountsChangedId) {
+            this._settings.disconnect(this._accountsChangedId);
+            this._accountsChangedId = null;
+        }
+
+        this._accountItem?.destroy();
         this._icon?.destroy();
         this._label?.destroy();
         this._resinItem?.destroy();
@@ -136,6 +149,7 @@ export default class GenshinResinExtension extends Extension {
         this._expItems?.forEach(i => i?.destroy());
         this._indicator?.destroy();
 
+        this._accountItem = null;
         this._icon = null;
         this._label = null;
         this._resinItem = null;
@@ -156,6 +170,12 @@ export default class GenshinResinExtension extends Extension {
 
     _buildMenu() {
         const menu = this._indicator.menu;
+
+        this._accountItem = new PopupMenu.PopupSubMenuMenuItem('');
+        menu.addMenuItem(this._accountItem);
+        this._updateAccountMenu();
+
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         this._resinItem = new PopupMenu.PopupMenuItem('', {reactive: false});
         menu.addMenuItem(this._resinItem);
@@ -199,16 +219,108 @@ export default class GenshinResinExtension extends Extension {
         menu.addAction('Preferences', () => this.openPreferences());
     }
 
-    _fetchNotes() {
-        const uidStr = this._settings.get_string('uid');
-        const server = this._settings.get_string('server');
-        const ltuid = this._settings.get_string('ltuid');
-        const ltoken = this._settings.get_string('ltoken');
-        const ltmid = this._settings.get_string('ltmid');
-        const accountId = this._settings.get_string('account-id');
-        const cookieToken = this._settings.get_string('cookie-token');
+    _getCurrentAccount() {
+        if (this._accounts.length === 0)
+            return null;
+        return this._accounts[this._activeAccount];
+    }
 
-        if (!uidStr || uidStr === '0') {
+    _loadAccounts() {
+        try {
+            this._accounts = JSON.parse(this._settings.get_string('accounts'));
+        } catch (_) {
+            this._accounts = [];
+        }
+        if (!Array.isArray(this._accounts))
+            this._accounts = [];
+
+        if (this._accounts.length === 0) {
+            const uid = this._settings.get_string('uid');
+            if (uid && uid !== '0') {
+                const acc = {
+                    name: 'Default',
+                    uid,
+                    server: this._settings.get_string('server') || 'os_euro',
+                    ltuid: this._settings.get_string('ltuid') || '',
+                    ltoken: this._settings.get_string('ltoken') || '',
+                    ltmid: this._settings.get_string('ltmid') || '',
+                    accountId: this._settings.get_string('account-id') || '',
+                    cookieToken: this._settings.get_string('cookie-token') || '',
+                };
+                this._accounts.push(acc);
+                this._settings.set_string('accounts', JSON.stringify(this._accounts));
+            }
+        }
+    }
+
+    _saveAccounts() {
+        this._settings.set_string('accounts', JSON.stringify(this._accounts));
+    }
+
+    _onAccountsChanged() {
+        this._loadAccounts();
+        if (this._activeAccount >= this._accounts.length)
+            this._activeAccount = Math.max(0, this._accounts.length - 1);
+        this._cachedData = null;
+        this._cachedTimestamp = 0;
+        this._resinCache = {maxResin: 200, lastResin: 0, lastUpdate: 0};
+        this._updateAccountMenu();
+        this._updateLabel();
+        this._fetchNotes();
+    }
+
+    _updateAccountMenu() {
+        if (!this._accountItem)
+            return;
+
+        const submenu = this._accountItem.menu;
+        submenu.removeAll();
+
+        const nAccounts = this._accounts.length;
+        if (nAccounts === 0) {
+            this._accountItem.label.text = 'No accounts';
+            this._accountItem.visible = true;
+            submenu.addAction('Preferences', () => this.openPreferences());
+            return;
+        }
+
+        const current = this._accounts[this._activeAccount];
+        this._accountItem.label.text = `Account: ${current ? current.name : '—'}`;
+        this._accountItem.visible = nAccounts > 1;
+
+        for (let i = 0; i < nAccounts; i++) {
+            const acc = this._accounts[i];
+            const item = new PopupMenu.PopupMenuItem(acc.name);
+            if (i === this._activeAccount)
+                item.setOrnament(PopupMenu.Ornament.DOT);
+            const idx = i;
+            item.connect('activate', () => this._switchAccount(idx));
+            submenu.addMenuItem(item);
+        }
+    }
+
+    _switchAccount(index) {
+        if (index === this._activeAccount)
+            return;
+        this._activeAccount = index;
+        this._cachedData = null;
+        this._cachedTimestamp = 0;
+        this._resinCache = {maxResin: 200, lastResin: 0, lastUpdate: 0};
+        this._updateAccountMenu();
+        this._updateLabel();
+        this._fetchNotes();
+    }
+
+    _fetchNotes() {
+        const acc = this._getCurrentAccount();
+        if (!acc) {
+            this._updateError('No account configured');
+            return;
+        }
+
+        const {uid, server, ltuid, ltoken, ltmid, accountId, cookieToken} = acc;
+
+        if (!uid || uid === '0') {
             this._updateError('No UID configured');
             return;
         }
@@ -219,7 +331,7 @@ export default class GenshinResinExtension extends Extension {
 
         try {
             const ds = generateDS();
-            const url = `${API_BASE}/dailyNote?role_id=${uidStr}&server=${server}`;
+            const url = `${API_BASE}/dailyNote?role_id=${uid}&server=${server}`;
             const uri = GLib.Uri.parse(url, GLib.UriFlags.NONE);
             const msg = Soup.Message.new_from_uri('GET', uri);
 
@@ -269,10 +381,11 @@ export default class GenshinResinExtension extends Extension {
 
             const d = data.data;
 
-            this._settings.set_int('last-resin', d.current_resin);
-            this._settings.set_int('max-resin', d.max_resin);
-            this._settings.set_value('last-update-ts',
-                GLib.Variant.new_int64(Math.floor(Date.now() / 1000)));
+            this._resinCache = {
+                maxResin: d.max_resin,
+                lastResin: d.current_resin,
+                lastUpdate: Math.floor(Date.now() / 1000),
+            };
 
             this._cachedData = d;
             this._cachedTimestamp = Math.floor(Date.now() / 1000);
@@ -351,18 +464,10 @@ export default class GenshinResinExtension extends Extension {
     }
 
     _getEstimatedResin() {
-        const maxResin = this._settings.get_int('max-resin') || 200;
-        const lastResin = this._settings.get_int('last-resin') || 0;
-
-        let lastUpdate = 0;
-        try {
-            lastUpdate = this._settings.get_value('last-update-ts').get_int64();
-        } catch (_) {
-            return {current: 0, max: maxResin, remaining: 0};
-        }
+        const {maxResin, lastResin, lastUpdate} = this._resinCache;
 
         if (lastUpdate === 0)
-            return {current: lastResin, max: maxResin, remaining: 0};
+            return {current: lastResin, max: maxResin, remaining: 0, nextTick: 0};
 
         const elapsed = Math.floor(Date.now() / 1000) - lastUpdate;
         const regenerated = Math.floor(elapsed / RESIN_SECONDS);
@@ -390,7 +495,11 @@ export default class GenshinResinExtension extends Extension {
         const {current, max, remaining} = this._getEstimatedResin();
         this._label.text = `${current}/${max}`;
 
-        let tooltip = `Resin: ${current}/${max} \u2192 ${fmtCompact(remaining)}`;
+        const acc = this._getCurrentAccount();
+        const accLabel = acc && this._accounts.length > 1
+            ? `[${acc.name}] ` : '';
+
+        let tooltip = `${accLabel}Resin: ${current}/${max} \u2192 ${fmtCompact(remaining)}`;
 
         const d = this._cachedData;
         if (d) {

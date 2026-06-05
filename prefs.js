@@ -12,65 +12,26 @@ const SERVER_LABELS = {
     'os_cht': 'TW/HK/MO',
 };
 
+const SERVER_NAMES = SERVER_KEYS.map(k => SERVER_LABELS[k]);
+
 export default class GenshinResinPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         window._settings = this.getSettings();
 
-        const page = new Adw.PreferencesPage({
+        this._accounts = this._loadAccounts();
+        this._loading = true;
+
+        const generalPage = new Adw.PreferencesPage({
             title: _('General'),
             icon_name: 'dialog-information-symbolic',
         });
-        window.add(page);
-
-        const accountGroup = new Adw.PreferencesGroup({
-            title: _('Account'),
-            description: _('Your Genshin Impact account details'),
-        });
-        page.add(accountGroup);
-
-        const uidRow = new Adw.EntryRow({
-            title: _('Genshin UID'),
-        });
-        uidRow.text = window._settings.get_string('uid') !== '0'
-            ? window._settings.get_string('uid') : '';
-        uidRow.connect('changed', () => {
-            window._settings.set_string('uid', uidRow.text);
-        });
-        accountGroup.add(uidRow);
-
-        const serverRow = new Adw.ComboRow({
-            title: _('Server'),
-            model: Gtk.StringList.new(SERVER_KEYS.map(k => SERVER_LABELS[k])),
-        });
-        const serverStr = window._settings.get_string('server');
-        let idx = SERVER_KEYS.indexOf(serverStr);
-        if (idx < 0) idx = 0;
-        serverRow.selected = idx;
-        serverRow.connect('notify::selected', () => {
-            const sel = serverRow.selected;
-            if (sel >= 0 && sel < SERVER_KEYS.length)
-                window._settings.set_string('server', SERVER_KEYS[sel]);
-        });
-        accountGroup.add(serverRow);
-
-        const cookieGroup = new Adw.PreferencesGroup({
-            title: _('HoYoLAB Cookies (v2)'),
-            description: _(
-                'Open <a href="https://www.hoyolab.com">hoyolab.com</a>, log in, then F12 → Application → Cookies → https://www.hoyolab.com.\nCopy the <b>value</b> for each cookie named with _v2 suffix below.'),
-        });
-        page.add(cookieGroup);
-
-        const ltuidRow = this._addCookieRow(cookieGroup, 'ltuid_v2', 'ltuid');
-        const ltokenRow = this._addCookieRow(cookieGroup, 'ltoken_v2', 'ltoken');
-        const ltmidRow = this._addCookieRow(cookieGroup, 'ltmid_v2 (optional)', 'ltmid');
-        const accountIdRow = this._addCookieRow(cookieGroup, 'account_id_v2', 'account-id');
-        const cookieTokenRow = this._addCookieRow(cookieGroup, 'cookie_token_v2', 'cookie-token');
+        window.add(generalPage);
 
         const displayGroup = new Adw.PreferencesGroup({
             title: _('Panel Display'),
             description: _('Changes apply after restarting GNOME Shell'),
         });
-        page.add(displayGroup);
+        generalPage.add(displayGroup);
 
         const boxRow = new Adw.ComboRow({
             title: _('Panel Section'),
@@ -100,10 +61,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT);
         displayGroup.add(posRow);
 
-        const advancedGroup = new Adw.PreferencesGroup({
-            title: _('Advanced'),
-        });
-        page.add(advancedGroup);
+        const advancedGroup = new Adw.PreferencesGroup({title: _('Advanced')});
+        generalPage.add(advancedGroup);
 
         const pollRow = new Adw.SpinRow({
             title: _('Poll Interval (seconds)'),
@@ -118,14 +77,182 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         window._settings.bind('poll-interval', pollRow.adjustment, 'value',
             Gio.SettingsBindFlags.DEFAULT);
         advancedGroup.add(pollRow);
+
+        const accountsPage = new Adw.PreferencesPage({
+            title: _('Accounts'),
+            icon_name: 'system-users-symbolic',
+        });
+        window.add(accountsPage);
+
+        const selGroup = new Adw.PreferencesGroup({title: _('Manage Accounts')});
+        accountsPage.add(selGroup);
+
+        this._accountList = Gtk.StringList.new([]);
+        this._accountCombo = new Adw.ComboRow({
+            title: _('Select Account'),
+            model: this._accountList,
+        });
+
+        const btnBox = new Gtk.Box({spacing: 0});
+        btnBox.add_css_class('linked');
+        const addBtn = new Gtk.Button({
+            icon_name: 'list-add-symbolic',
+            tooltip_text: _('Add new account'),
+            valign: Gtk.Align.CENTER,
+        });
+        const delBtn = new Gtk.Button({
+            icon_name: 'list-remove-symbolic',
+            tooltip_text: _('Remove current account'),
+            valign: Gtk.Align.CENTER,
+        });
+        btnBox.append(addBtn);
+        btnBox.append(delBtn);
+        this._accountCombo.add_suffix(btnBox);
+        selGroup.add(this._accountCombo);
+
+        addBtn.connect('clicked', () => {
+            this._accounts.push({
+                name: `Account ${this._accounts.length + 1}`,
+                uid: '',
+                server: 'os_euro',
+                ltuid: '',
+                ltoken: '',
+                ltmid: '',
+                accountId: '',
+                cookieToken: '',
+            });
+            this._saveAccounts();
+            this._rebuildAccountList();
+            this._accountCombo.selected = this._accounts.length - 1;
+        });
+
+        delBtn.connect('clicked', () => {
+            const idx = this._accountCombo.selected;
+            if (idx < 0 || idx >= this._accounts.length) return;
+            this._accounts.splice(idx, 1);
+            this._saveAccounts();
+            this._rebuildAccountList();
+            this._accountCombo.selected = Math.min(idx, this._accounts.length - 1);
+        });
+
+        this._accountCombo.connect('notify::selected', () => {
+            if (this._loading) return;
+            const idx = this._accountCombo.selected;
+            if (idx < 0 || idx >= this._accounts.length) return;
+            this._populateFields(this._accounts[idx]);
+            delBtn.sensitive = this._accounts.length > 1;
+        });
+
+        const detailGroup = new Adw.PreferencesGroup({title: _('Account Details')});
+        accountsPage.add(detailGroup);
+
+        this._nameRow = new Adw.EntryRow({title: _('Account Name')});
+        this._nameRow.connect('changed', () => this._onFieldChanged());
+        detailGroup.add(this._nameRow);
+
+        this._uidRow = new Adw.EntryRow({title: _('Genshin UID')});
+        this._uidRow.connect('changed', () => this._onFieldChanged());
+        detailGroup.add(this._uidRow);
+
+        this._serverRow = new Adw.ComboRow({
+            title: _('Server'),
+            model: Gtk.StringList.new(SERVER_NAMES),
+        });
+        this._serverRow.connect('notify::selected', () => this._onFieldChanged());
+        detailGroup.add(this._serverRow);
+
+        const cookieGroup = new Adw.PreferencesGroup({
+            title: _('HoYoLAB Cookies (v2)'),
+            description: _(
+                'Open <a href="https://www.hoyolab.com">hoyolab.com</a>, log in, '
+                + 'then F12 → Application → Cookies → https://www.hoyolab.com.\n'
+                + 'Copy the <b>value</b> for each cookie named with _v2 suffix.'),
+        });
+        accountsPage.add(cookieGroup);
+
+        this._ltuidRow = this._addCookieRow(cookieGroup, 'ltuid_v2');
+        this._ltokenRow = this._addCookieRow(cookieGroup, 'ltoken_v2');
+        this._ltmidRow = this._addCookieRow(cookieGroup, 'ltmid_v2 (optional)');
+        this._accountIdRow = this._addCookieRow(cookieGroup, 'account_id_v2');
+        this._cookieTokenRow = this._addCookieRow(cookieGroup, 'cookie_token_v2');
+
+        this._rebuildAccountList();
+        if (this._accounts.length > 0)
+            this._populateFields(this._accounts[0]);
+        else
+            this._populateFields(null);
+
+        window.connect('close-request', () => {
+            this._accounts = null;
+            this._accountList = null;
+            this._accountCombo = null;
+            this._nameRow = null;
+            this._uidRow = null;
+            this._serverRow = null;
+            this._ltuidRow = null;
+            this._ltokenRow = null;
+            this._ltmidRow = null;
+            this._accountIdRow = null;
+            this._cookieTokenRow = null;
+            this._loading = false;
+        });
+
+        this._loading = false;
     }
 
-    _addCookieRow(group, title, key) {
+    _loadAccounts() {
+        try {
+            const accounts = JSON.parse(this.getSettings().get_string('accounts'));
+            if (Array.isArray(accounts)) return accounts;
+        } catch (_) {}
+        return [];
+    }
+
+    _saveAccounts() {
+        this.getSettings().set_string('accounts', JSON.stringify(this._accounts));
+    }
+
+    _rebuildAccountList() {
+        this._accountList.splice(0, this._accountList.get_n_items());
+        for (const acc of this._accounts)
+            this._accountList.append(acc.name);
+    }
+
+    _populateFields(acc) {
+        this._loading = true;
+        this._nameRow.text = acc ? acc.name || '' : '';
+        this._uidRow.text = acc ? acc.uid || '' : '';
+        const si = acc ? SERVER_KEYS.indexOf(acc.server) : -1;
+        this._serverRow.selected = si >= 0 ? si : 0;
+        this._ltuidRow.text = acc ? acc.ltuid || '' : '';
+        this._ltokenRow.text = acc ? acc.ltoken || '' : '';
+        this._ltmidRow.text = acc ? acc.ltmid || '' : '';
+        this._accountIdRow.text = acc ? acc.accountId || '' : '';
+        this._cookieTokenRow.text = acc ? acc.cookieToken || '' : '';
+        this._loading = false;
+    }
+
+    _onFieldChanged() {
+        if (this._loading) return;
+        const idx = this._accountCombo.selected;
+        if (idx < 0 || idx >= this._accounts.length) return;
+        const acc = this._accounts[idx];
+        acc.name = this._nameRow.text;
+        acc.uid = this._uidRow.text;
+        acc.server = SERVER_KEYS[this._serverRow.selected] || 'os_euro';
+        acc.ltuid = this._ltuidRow.text;
+        acc.ltoken = this._ltokenRow.text;
+        acc.ltmid = this._ltmidRow.text;
+        acc.accountId = this._accountIdRow.text;
+        acc.cookieToken = this._cookieTokenRow.text;
+        this._saveAccounts();
+        this._rebuildAccountList();
+        this._accountCombo.selected = idx;
+    }
+
+    _addCookieRow(group, title) {
         const row = new Adw.PasswordEntryRow({title});
-        row.text = this.getSettings().get_string(key);
-        row.connect('changed', () => {
-            this.getSettings().set_string(key, row.text);
-        });
+        row.connect('changed', () => this._onFieldChanged());
         group.add(row);
         return row;
     }
