@@ -116,10 +116,44 @@ export default class GenshinResinExtension extends Extension {
             GLib.source_remove(this._tickSource);
             this._tickSource = null;
         }
+
+        this._icon?.destroy();
+        this._icon = null;
+        this._label?.destroy();
+        this._label = null;
+
+        this._resinItem?.destroy();
+        this._resinItem = null;
+        this._nextTickItem?.destroy();
+        this._nextTickItem = null;
+        this._commItem?.destroy();
+        this._commItem = null;
+        this._bossItem?.destroy();
+        this._bossItem = null;
+        this._expHeader?.destroy();
+        this._expHeader = null;
+        this._coinItem?.destroy();
+        this._coinItem = null;
+        this._transformerItem?.destroy();
+        this._transformerItem = null;
+        this._errorItem?.destroy();
+        this._errorItem = null;
+
+        if (this._expItems) {
+            for (const item of this._expItems)
+                item?.destroy();
+            this._expItems = null;
+        }
+
         this._indicator?.destroy();
         this._indicator = null;
-        this._settings = null;
+
+        this._session?.abort();
         this._session = null;
+
+        this._settings = null;
+        this._cachedData = null;
+        this._cachedTimestamp = 0;
     }
 
     _buildMenu() {
