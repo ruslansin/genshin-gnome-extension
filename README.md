@@ -19,7 +19,9 @@ GNOME Shell extension that shows your Genshin Impact real-time resources in the 
   - Expedition countdown timers per character
   - Realm currency + time until cap
   - Parametric Transformer status
+  - Spiral Abyss progress (floor, stars, time left)
   - Copy UID to clipboard
+- **Desktop notifications** — per-module alerts when resin is full, expeditions finish, transformer ready, or currency caps
 - **Automatic refresh** via HoYoLAB Battle Chronicle API
 - **Local interpolation** between API calls (1 resin per 8 minutes)
 - **Modular architecture** — each feature is an independent module; reorder, enable, or disable per account in preferences
@@ -57,6 +59,8 @@ Expeditions: 5/5
    ⏳ 02:34:11
    ⏳ 02:34:11
    ⏳ 02:34:11
+───────────────────
+⚔ Spiral Abyss: Floor 12-3  ★ 36/36  → 15d 6h
 ───────────────────
 ⌂ Realm Currency: 630/2400  → 58h 20m
 ⚗ Transformer: Ready!
@@ -151,13 +155,14 @@ modules/             — Plugin-style feature modules
   index.js           —   Module registry (aggregates all modules)
   metadata.js        —   Auto-generated keys/labels (no shell deps)
   module.js          —   Base Module class
-  util.js            —   Formatting helpers and constants
-  resin.js           —   Resin counter + countdown
+  util.js            —   Formatting helpers, constants, NotifyGuard
+  resin.js           —   Resin counter + countdown + full notification
   commissions.js     —   Daily commissions
   bosses.js          —   Weekly boss discounts
-  expeditions.js     —   Expedition timers
-  currency.js        —   Realm currency
-  transformer.js     —   Parametric transformer
+  expeditions.js     —   Expedition timers + done notification
+  abyss.js           —   Spiral Abyss progress (independent API)
+  currency.js        —   Realm currency + cap notification
+  transformer.js     —   Parametric transformer + ready notification
   error.js           —   Error display
   account-name.js    —   Account name in menu
 ```
@@ -174,7 +179,7 @@ modules/             — Plugin-style feature modules
 
    export default class YourModule extends Module {
        build() { /* create menu items */ }
-       update(data) { /* update from API data */ }
+       update(data) { /* update from API data; use this._session / this._account if needed */ }
    }
    ```
 

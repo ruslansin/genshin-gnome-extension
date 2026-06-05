@@ -8,6 +8,7 @@ import BossesModule from './bosses.js';
 import ExpeditionsModule from './expeditions.js';
 import CurrencyModule from './currency.js';
 import TransformerModule from './transformer.js';
+import AbyssModule from './abyss.js';
 import ErrorModule from './error.js';
 import AccountNameModule from './account-name.js';
 
@@ -18,6 +19,7 @@ export {
     ExpeditionsModule,
     CurrencyModule,
     TransformerModule,
+    AbyssModule,
     ErrorModule,
     AccountNameModule,
 };
@@ -29,4 +31,5 @@ export const MODULE_REGISTRY = {
     expeditions: ExpeditionsModule,
     currency: CurrencyModule,
     transformer: TransformerModule,
+    abyss: AbyssModule,
 };

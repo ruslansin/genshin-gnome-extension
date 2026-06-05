@@ -1,6 +1,8 @@
 export class Module {
-    constructor(menu) {
+    constructor(menu, session, account) {
         this._menu = menu;
+        this._session = session;
+        this._account = account;
         this._items = [];
         this.enabled = true;
     }

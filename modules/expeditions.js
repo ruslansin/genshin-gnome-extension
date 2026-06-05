@@ -1,12 +1,18 @@
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
-import {fmtTimer} from './util.js';
+import {NotifyGuard, fmtTimer} from './util.js';
 
 export const key = 'expeditions';
 export const label = 'Expeditions';
+export const notifications = true;
 
 export default class ExpeditionsModule extends Module {
+    constructor(menu) {
+        super(menu);
+        this._guard = new NotifyGuard();
+    }
+
     build() {
         this._header = new PopupMenu.PopupMenuItem('Expeditions', {reactive: false});
         this._menu.addMenuItem(this._header);
@@ -37,5 +43,13 @@ export default class ExpeditionsModule extends Module {
         }
         this._header.label.text =
             `Expeditions: ${data.current_expedition_num || 0}/${data.max_expedition_num || 5}`;
+
+        const allDone = exps.length > 0
+            && exps.every(e => e.status === 'Finished');
+
+    this._guard.arm();
+    const notifyOn = this._account?.modules?.notify_expeditions !== false;
+    this._guard.check('done', allDone,
+        'Expeditions done', 'All expeditions have returned', notifyOn);
     }
 }

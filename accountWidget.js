@@ -43,7 +43,7 @@ export class AccountWidget {
         this._prefsCallback = prefsCallback;
         this._showName = showName;
         this._enabled = account.modules || {};
-        this._order = account.moduleOrder || MODULE_KEYS;
+        this._order = this._normalizeOrder(account.moduleOrder);
         this._instances = {};
         this._cachedData = null;
         this._cacheAge = null;
@@ -78,6 +78,16 @@ export class AccountWidget {
         return this._enabled[key] !== false;
     }
 
+    _normalizeOrder(order) {
+        const result = order ? [...order] : [...MODULE_KEYS];
+        const have = new Set(result);
+        for (const k of MODULE_KEYS) {
+            if (!have.has(k))
+                result.push(k);
+        }
+        return result;
+    }
+
     _buildMenu() {
         const menu = this._indicator.menu;
 
@@ -92,7 +102,7 @@ export class AccountWidget {
             menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
             const M = MODULE_REGISTRY[key];
             if (!M) continue;
-            const inst = new M(menu);
+            const inst = new M(menu, this._session, this._account);
             inst.build();
             this._instances[key] = inst;
         }
@@ -118,7 +128,7 @@ export class AccountWidget {
     updateAccount(account, showName) {
         this._account = account;
         this._enabled = account.modules || {};
-        this._order = account.moduleOrder || MODULE_KEYS;
+        this._order = this._normalizeOrder(account.moduleOrder);
         this._cachedData = null;
         this._cacheAge = null;
         this._loadCachedData();

@@ -1,15 +1,17 @@
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
-import {RESIN_SECONDS, fmtDuration, fmtTimer} from './util.js';
+import {NotifyGuard, RESIN_SECONDS, fmtDuration, fmtTimer} from './util.js';
 
 export const key = 'resin';
 export const label = 'Resin';
+export const notifications = true;
 
 export default class ResinModule extends Module {
     constructor(menu) {
         super(menu);
         this._cache = {maxResin: 200, lastResin: 0, lastUpdate: 0};
+        this._guard = new NotifyGuard();
     }
 
     build() {
@@ -33,6 +35,11 @@ export default class ResinModule extends Module {
             parseInt(data.remaining_resin_recovery_time, 10) || 0);
         this._resinItem.label.text =
             `\u25C6 Resin: ${data.current_resin}/${data.max_resin}  \u2192 ${fmtDuration(resinSec)}`;
+
+    this._guard.arm();
+    const notifyOn = this._account?.modules?.notify_resin !== false;
+    this._guard.check('full', data.current_resin >= data.max_resin,
+        'Resin is full!', `${data.current_resin}/${data.max_resin}`, notifyOn);
     }
 
     getEstimate() {

@@ -27,7 +27,7 @@ cp -r "$SCRIPT_DIR/schemas" "$EXT_DIR/"
 echo "==> Generating module metadata..."
 {
     echo 'export const MODULE_KEYS = ['
-    for key in resin commissions bosses expeditions currency transformer; do
+    for key in resin commissions bosses expeditions abyss currency transformer; do
         echo "  '$key',"
     done
     echo '];'
@@ -41,6 +41,18 @@ echo "==> Generating module metadata..."
         k=$(grep "^export const key " "$f" | sed "s/.*'\(.*\)';/\1/")
         l=$(grep "^export const label " "$f" | sed "s/.*'\(.*\)';/\1/")
         [ -n "$k" ] && [ -n "$l" ] && echo "  $k: '$l',"
+    done
+    echo '};'
+    echo
+    echo 'export const MODULE_NOTIFICATIONS = {'
+    for f in "$SCRIPT_DIR/modules"/*.js; do
+        name=$(basename "$f" .js)
+        case "$name" in
+            index|module|util|account-name|error|metadata) continue ;;
+        esac
+        k=$(grep "^export const key " "$f" | sed "s/.*'\(.*\)';/\1/")
+        hasNotify=$(grep "^export const notifications" "$f" | grep -c "true" || true)
+        [ -n "$k" ] && [ "$hasNotify" -gt 0 ] && echo "  $k: true,"
     done
     echo '};'
 } > "$EXT_DIR/modules/metadata.js"

@@ -1,11 +1,18 @@
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
+import {NotifyGuard} from './util.js';
 
 export const key = 'transformer';
 export const label = 'Parametric Transformer';
+export const notifications = true;
 
 export default class TransformerModule extends Module {
+    constructor(menu) {
+        super(menu);
+        this._guard = new NotifyGuard();
+    }
+
     build() {
         this._item = new PopupMenu.PopupMenuItem('', {reactive: false});
         this._menu.addMenuItem(this._item);
@@ -14,10 +21,12 @@ export default class TransformerModule extends Module {
 
     update(data) {
         const tr = data.transformer;
+        let ready = false;
         if (tr && tr.obtained) {
             const rt = tr.recovery_time || {};
             if (rt.reached) {
                 this._item.label.text = '\u2697 Transformer: Ready!';
+                ready = true;
             } else {
                 const h = rt.Hour || 0;
                 const m = rt.Minute || 0;
@@ -27,5 +36,10 @@ export default class TransformerModule extends Module {
         } else {
             this._item.label.text = '\u2697 Transformer: Not obtained';
         }
+
+    this._guard.arm();
+    const notifyOn = this._account?.modules?.notify_transformer !== false;
+    this._guard.check('ready', ready,
+        'Transformer ready', 'Parametric Transformer is available', notifyOn);
     }
 }

@@ -3,7 +3,7 @@ import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import {MODULE_KEYS, MODULE_LABELS} from './modules/metadata.js';
+import {MODULE_KEYS, MODULE_LABELS, MODULE_NOTIFICATIONS} from './modules/metadata.js';
 
 const SERVER_KEYS = ['os_euro', 'os_usa', 'os_asia', 'os_cht'];
 const SERVER_LABELS = {
@@ -283,13 +283,41 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             this._moduleGroup.remove(row);
         this._moduleRows = {};
 
-        const order = acc ? (acc.moduleOrder || MODULE_KEYS) : [];
+        let order = acc ? (acc.moduleOrder || [...MODULE_KEYS]) : [];
+        const have = new Set(order);
+        for (const k of MODULE_KEYS) {
+            if (!have.has(k))
+                order.push(k);
+        }
         const enabled = acc ? (acc.modules || {}) : {};
 
         for (let i = 0; i < order.length; i++) {
             const key = order[i];
             const row = new Adw.SwitchRow({title: MODULE_LABELS[key] || key});
             row.active = enabled[key] !== false;
+
+            const suffixBox = new Gtk.Box({spacing: 0});
+            suffixBox.valign = Gtk.Align.CENTER;
+
+            if (MODULE_NOTIFICATIONS[key]) {
+                const notifyKey = `notify_${key}`;
+                const notifyOn = enabled[notifyKey] !== false;
+                const bellBtn = Gtk.ToggleButton.new_with_label(notifyOn ? '●' : '○');
+                bellBtn.active = notifyOn;
+                bellBtn.tooltip_text = _('Toggle notifications');
+                bellBtn.valign = Gtk.Align.CENTER;
+                bellBtn.connect('toggled', () => {
+                    if (this._loading) return;
+                    const idx = this._moduleAccountCombo.selected;
+                    if (idx < 0 || idx >= this._accounts.length) return;
+                    const acc = this._accounts[idx];
+                    if (!acc.modules) acc.modules = {};
+                    acc.modules[notifyKey] = bellBtn.active;
+                    bellBtn.label = bellBtn.active ? '●' : '○';
+                    this._saveAccounts();
+                });
+                suffixBox.append(bellBtn);
+            }
 
             const arrowBox = new Gtk.Box({spacing: 0});
             arrowBox.add_css_class('linked');
@@ -311,7 +339,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
             arrowBox.append(upBtn);
             arrowBox.append(downBtn);
-            row.add_suffix(arrowBox);
+            suffixBox.append(arrowBox);
+            row.add_suffix(suffixBox);
 
             row.connect('notify::active', () => this._onModuleToggled());
             this._moduleGroup.add(row);
@@ -323,7 +352,12 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         const idx = this._moduleAccountCombo.selected;
         if (idx < 0 || idx >= this._accounts.length) return;
         const acc = this._accounts[idx];
-        const order = acc.moduleOrder || [...MODULE_KEYS];
+        let order = acc.moduleOrder || [...MODULE_KEYS];
+        const have = new Set(order);
+        for (const k of MODULE_KEYS) {
+            if (!have.has(k))
+                order.push(k);
+        }
         const pos = order.indexOf(key);
         if (pos < 0) return;
 

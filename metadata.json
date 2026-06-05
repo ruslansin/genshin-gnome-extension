@@ -1,9 +1,9 @@
 {
     "uuid": "genshin-resin@snql",
     "name": "Genshin Resin Tracker",
-    "description": "Shows current Genshin Impact resin energy in the top panel using HoYoLAB API",
+    "description": "Shows current Genshin Impact resin energy in the top panel using HoYoLAB API.\n\n* Multi-account with per-account region\n* Resin counter with color coding and live countdown\n* Commissions, bosses, expeditions, realm currency, transformer\n* Module reordering and toggles per account\n* Persistent cache survives restarts and network outages\n* Copies UID to clipboard (St.Clipboard, declared)",
     "shell-version": ["49", "50"],
     "url": "https://github.com/ruslansin/genshin-gnome-extension",
     "settings-schema": "org.gnome.shell.extensions.genshin-resin",
-    "version": 5
+    "version": 6
 }
