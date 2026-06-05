@@ -51,28 +51,16 @@
       <description>From hoyolab.com Cookies → cookie_token_v2</description>
     </key>
 
+    <key name="last-data" type="s">
+      <default>"{}"</default>
+      <summary>Last API response cache (JSON)</summary>
+      <description>JSON object keyed by UID, each with data and ts fields. Used as fallback when the API is unreachable.</description>
+    </key>
+
     <key name="poll-interval" type="i">
       <default>300</default>
       <summary>API poll interval (seconds)</summary>
       <description>How often to fetch data from the HoYoLAB API (60-3600)</description>
-    </key>
-
-    <key name="last-resin" type="i">
-      <default>0</default>
-      <summary>Last known resin count</summary>
-      <description>Stored after last successful API call</description>
-    </key>
-
-    <key name="max-resin" type="i">
-      <default>200</default>
-      <summary>Maximum resin</summary>
-      <description>Maximum resin capacity from last API response</description>
-    </key>
-
-    <key name="last-update-ts" type="x">
-      <default>0</default>
-      <summary>Last update timestamp</summary>
-      <description>Unix timestamp (seconds) of last successful API call</description>
     </key>
 
     <key name="panel-position" type="i">

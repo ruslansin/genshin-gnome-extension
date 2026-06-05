@@ -18,11 +18,32 @@ echo "==> Copying files..."
 cp "$SCRIPT_DIR/metadata.json" "$EXT_DIR/"
 cp "$SCRIPT_DIR/extension.js" "$EXT_DIR/"
 cp "$SCRIPT_DIR/prefs.js" "$EXT_DIR/"
-cp "$SCRIPT_DIR/modules.js" "$EXT_DIR/"
 cp "$SCRIPT_DIR/accountWidget.js" "$EXT_DIR/"
+cp -r "$SCRIPT_DIR/modules" "$EXT_DIR/"
 cp "$SCRIPT_DIR/stylesheet.css" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/assets" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/schemas" "$EXT_DIR/"
+
+echo "==> Generating module metadata..."
+{
+    echo 'export const MODULE_KEYS = ['
+    for key in resin commissions bosses expeditions currency transformer; do
+        echo "  '$key',"
+    done
+    echo '];'
+    echo
+    echo 'export const MODULE_LABELS = {'
+    for f in "$SCRIPT_DIR/modules"/*.js; do
+        name=$(basename "$f" .js)
+        case "$name" in
+            index|module|util|account-name|error|metadata) continue ;;
+        esac
+        k=$(grep "^export const key " "$f" | sed "s/.*'\(.*\)';/\1/")
+        l=$(grep "^export const label " "$f" | sed "s/.*'\(.*\)';/\1/")
+        [ -n "$k" ] && [ -n "$l" ] && echo "  $k: '$l',"
+    done
+    echo '};'
+} > "$EXT_DIR/modules/metadata.js"
 
 echo "==> Compiling GSettings schema..."
 glib-compile-schemas "$EXT_DIR/schemas/"

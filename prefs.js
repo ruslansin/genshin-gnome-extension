@@ -3,6 +3,7 @@ import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {MODULE_KEYS, MODULE_LABELS} from './modules/metadata.js';
 
 const SERVER_KEYS = ['os_euro', 'os_usa', 'os_asia', 'os_cht'];
 const SERVER_LABELS = {
@@ -11,7 +12,6 @@ const SERVER_LABELS = {
     'os_asia': 'Asia',
     'os_cht': 'TW/HK/MO',
 };
-
 const SERVER_NAMES = SERVER_KEYS.map(k => SERVER_LABELS[k]);
 
 export default class GenshinResinPreferences extends ExtensionPreferences {
@@ -21,17 +21,54 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         this._accounts = this._loadAccounts();
         this._loading = true;
 
-        const generalPage = new Adw.PreferencesPage({
+        this._buildGeneralPage(window);
+        this._buildAccountsPage(window);
+        this._buildModulesPage(window);
+
+        this._rebuildAccountList();
+        this._rebuildModuleAccountList();
+
+        if (this._accounts.length > 0) {
+            this._populateFields(this._accounts[0]);
+            this._buildModuleRows(this._accounts[0]);
+            this._moduleAccountCombo.selected = 0;
+        }
+
+        window.connect('close-request', () => {
+            this._accounts = null;
+            this._accountList = null;
+            this._moduleAccountList = null;
+            this._accountCombo = null;
+            this._moduleAccountCombo = null;
+            this._nameRow = null;
+            this._uidRow = null;
+            this._serverRow = null;
+            this._ltuidRow = null;
+            this._ltokenRow = null;
+            this._ltmidRow = null;
+            this._accountIdRow = null;
+            this._cookieTokenRow = null;
+            this._moduleRows = null;
+            this._loading = false;
+        });
+
+        this._loading = false;
+    }
+
+    /* ---- General page ---- */
+
+    _buildGeneralPage(window) {
+        const page = new Adw.PreferencesPage({
             title: _('General'),
             icon_name: 'dialog-information-symbolic',
         });
-        window.add(generalPage);
+        window.add(page);
 
         const displayGroup = new Adw.PreferencesGroup({
             title: _('Panel Display'),
             description: _('Changes apply after restarting GNOME Shell'),
         });
-        generalPage.add(displayGroup);
+        page.add(displayGroup);
 
         const boxRow = new Adw.ComboRow({
             title: _('Panel Section'),
@@ -70,7 +107,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         displayGroup.add(showNameRow);
 
         const advancedGroup = new Adw.PreferencesGroup({title: _('Advanced')});
-        generalPage.add(advancedGroup);
+        page.add(advancedGroup);
 
         const pollRow = new Adw.SpinRow({
             title: _('Poll Interval (seconds)'),
@@ -85,15 +122,19 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         window._settings.bind('poll-interval', pollRow.adjustment, 'value',
             Gio.SettingsBindFlags.DEFAULT);
         advancedGroup.add(pollRow);
+    }
 
-        const accountsPage = new Adw.PreferencesPage({
+    /* ---- Accounts page ---- */
+
+    _buildAccountsPage(window) {
+        const page = new Adw.PreferencesPage({
             title: _('Accounts'),
             icon_name: 'system-users-symbolic',
         });
-        window.add(accountsPage);
+        window.add(page);
 
         const selGroup = new Adw.PreferencesGroup({title: _('Manage Accounts')});
-        accountsPage.add(selGroup);
+        page.add(selGroup);
 
         this._accountList = Gtk.StringList.new([]);
         this._accountCombo = new Adw.ComboRow({
@@ -119,6 +160,9 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         selGroup.add(this._accountCombo);
 
         addBtn.connect('clicked', () => {
+            const modules = {};
+            for (const k of MODULE_KEYS)
+                modules[k] = true;
             this._accounts.push({
                 name: `Account ${this._accounts.length + 1}`,
                 uid: '',
@@ -128,9 +172,12 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
                 ltmid: '',
                 accountId: '',
                 cookieToken: '',
+                modules,
+                moduleOrder: [...MODULE_KEYS],
             });
             this._saveAccounts();
             this._rebuildAccountList();
+            this._rebuildModuleAccountList();
             this._accountCombo.selected = this._accounts.length - 1;
         });
 
@@ -140,6 +187,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             this._accounts.splice(idx, 1);
             this._saveAccounts();
             this._rebuildAccountList();
+            this._rebuildModuleAccountList();
             this._accountCombo.selected = Math.min(idx, this._accounts.length - 1);
         });
 
@@ -152,7 +200,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         });
 
         const detailGroup = new Adw.PreferencesGroup({title: _('Account Details')});
-        accountsPage.add(detailGroup);
+        page.add(detailGroup);
 
         this._nameRow = new Adw.EntryRow({title: _('Account Name')});
         this._nameRow.connect('changed', () => this._onFieldChanged());
@@ -176,56 +224,130 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
                 + 'then F12 → Application → Cookies → https://www.hoyolab.com.\n'
                 + 'Copy the <b>value</b> for each cookie named with _v2 suffix.'),
         });
-        accountsPage.add(cookieGroup);
+        page.add(cookieGroup);
 
         this._ltuidRow = this._addCookieRow(cookieGroup, 'ltuid_v2');
         this._ltokenRow = this._addCookieRow(cookieGroup, 'ltoken_v2');
         this._ltmidRow = this._addCookieRow(cookieGroup, 'ltmid_v2 (optional)');
         this._accountIdRow = this._addCookieRow(cookieGroup, 'account_id_v2');
         this._cookieTokenRow = this._addCookieRow(cookieGroup, 'cookie_token_v2');
+    }
 
-        this._rebuildAccountList();
-        if (this._accounts.length > 0)
-            this._populateFields(this._accounts[0]);
-        else
-            this._populateFields(null);
+    /* ---- Modules page ---- */
 
-        window.connect('close-request', () => {
-            this._accounts = null;
-            this._accountList = null;
-            this._accountCombo = null;
-            this._nameRow = null;
-            this._uidRow = null;
-            this._serverRow = null;
-            this._ltuidRow = null;
-            this._ltokenRow = null;
-            this._ltmidRow = null;
-            this._accountIdRow = null;
-            this._cookieTokenRow = null;
-            this._loading = false;
+    _buildModulesPage(window) {
+        const page = new Adw.PreferencesPage({
+            title: _('Modules'),
+            icon_name: 'application-x-addon-symbolic',
+        });
+        window.add(page);
+
+        const selGroup = new Adw.PreferencesGroup({title: _('Select Account')});
+        page.add(selGroup);
+
+        this._moduleAccountList = Gtk.StringList.new([]);
+        this._moduleAccountCombo = new Adw.ComboRow({
+            title: _('Account'),
+            model: this._moduleAccountList,
+        });
+        selGroup.add(this._moduleAccountCombo);
+
+        this._moduleAccountCombo.connect('notify::selected', () => {
+            if (this._loading) return;
+            const idx = this._moduleAccountCombo.selected;
+            if (idx < 0 || idx >= this._accounts.length) return;
+            this._buildModuleRows(this._accounts[idx]);
         });
 
-        this._loading = false;
+        this._moduleGroup = new Adw.PreferencesGroup({
+            title: _('Feature Modules'),
+            description: _('Enable, disable, or reorder features in the popup menu'),
+        });
+        page.add(this._moduleGroup);
+
+        this._moduleRows = {};
     }
 
-    _loadAccounts() {
-        try {
-            const accounts = JSON.parse(this.getSettings().get_string('accounts'));
-            if (Array.isArray(accounts)) return accounts;
-        } catch (_) {}
-        return [];
-    }
-
-    _saveAccounts() {
-        this.getSettings().set_string('accounts', JSON.stringify(this._accounts));
-    }
-
-    _rebuildAccountList() {
-        while (this._accountList.get_n_items() > 0)
-            this._accountList.remove(0);
+    _rebuildModuleAccountList() {
+        if (!this._moduleAccountList) return;
+        while (this._moduleAccountList.get_n_items() > 0)
+            this._moduleAccountList.remove(0);
         for (const acc of this._accounts)
-            this._accountList.append(acc.name);
+            this._moduleAccountList.append(acc.name);
     }
+
+    _buildModuleRows(acc) {
+        if (!this._moduleGroup) return;
+
+        for (const row of Object.values(this._moduleRows))
+            this._moduleGroup.remove(row);
+        this._moduleRows = {};
+
+        const order = acc ? (acc.moduleOrder || MODULE_KEYS) : [];
+        const enabled = acc ? (acc.modules || {}) : {};
+
+        for (let i = 0; i < order.length; i++) {
+            const key = order[i];
+            const row = new Adw.SwitchRow({title: MODULE_LABELS[key] || key});
+            row.active = enabled[key] !== false;
+
+            const arrowBox = new Gtk.Box({spacing: 0});
+            arrowBox.add_css_class('linked');
+            arrowBox.valign = Gtk.Align.CENTER;
+
+            const upBtn = Gtk.Button.new_with_label('\u25B2');
+            upBtn.tooltip_text = _('Move up');
+            upBtn.valign = Gtk.Align.CENTER;
+
+            const downBtn = Gtk.Button.new_with_label('\u25BC');
+            downBtn.tooltip_text = _('Move down');
+            downBtn.valign = Gtk.Align.CENTER;
+
+            upBtn.sensitive = i > 0;
+            downBtn.sensitive = i < order.length - 1;
+
+            upBtn.connect('clicked', () => this._moveModule(key, -1));
+            downBtn.connect('clicked', () => this._moveModule(key, 1));
+
+            arrowBox.append(upBtn);
+            arrowBox.append(downBtn);
+            row.add_suffix(arrowBox);
+
+            row.connect('notify::active', () => this._onModuleToggled());
+            this._moduleGroup.add(row);
+            this._moduleRows[key] = row;
+        }
+    }
+
+    _moveModule(key, direction) {
+        const idx = this._moduleAccountCombo.selected;
+        if (idx < 0 || idx >= this._accounts.length) return;
+        const acc = this._accounts[idx];
+        const order = acc.moduleOrder || [...MODULE_KEYS];
+        const pos = order.indexOf(key);
+        if (pos < 0) return;
+
+        const newPos = pos + direction;
+        if (newPos < 0 || newPos >= order.length) return;
+
+        [order[pos], order[newPos]] = [order[newPos], order[pos]];
+        acc.moduleOrder = order;
+        this._saveAccounts();
+        this._buildModuleRows(acc);
+    }
+
+    _onModuleToggled() {
+        if (this._loading) return;
+        const idx = this._moduleAccountCombo.selected;
+        if (idx < 0 || idx >= this._accounts.length) return;
+        const acc = this._accounts[idx];
+        if (!acc.modules) acc.modules = {};
+        for (const key of Object.keys(this._moduleRows))
+            acc.modules[key] = this._moduleRows[key].active;
+        this._saveAccounts();
+    }
+
+    /* ---- Shared helpers ---- */
 
     _populateFields(acc) {
         this._loading = true;
@@ -255,8 +377,10 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         acc.accountId = this._accountIdRow.text;
         acc.cookieToken = this._cookieTokenRow.text;
         this._saveAccounts();
-        if (this._accountList.get_string(idx) !== acc.name)
+        if (this._accountList.get_string(idx) !== acc.name) {
             this._accountList.splice(idx, 1, acc.name);
+            this._rebuildModuleAccountList();
+        }
     }
 
     _addCookieRow(group, title) {
@@ -264,5 +388,25 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         row.connect('changed', () => this._onFieldChanged());
         group.add(row);
         return row;
+    }
+
+    _loadAccounts() {
+        try {
+            const accounts = JSON.parse(this.getSettings().get_string('accounts'));
+            if (Array.isArray(accounts)) return accounts;
+        } catch (_) {}
+        return [];
+    }
+
+    _saveAccounts() {
+        this.getSettings().set_string('accounts', JSON.stringify(this._accounts));
+    }
+
+    _rebuildAccountList() {
+        if (!this._accountList) return;
+        while (this._accountList.get_n_items() > 0)
+            this._accountList.remove(0);
+        for (const acc of this._accounts)
+            this._accountList.append(acc.name);
     }
 }

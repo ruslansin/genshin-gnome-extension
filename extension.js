@@ -77,7 +77,7 @@ export default class GenshinResinExtension extends Extension {
 
     _addWidget(index, position, boxSide, showName) {
         const acc = this._accounts[index];
-        const widget = new AccountWidget(acc, this.path, this._session,
+        const widget = new AccountWidget(acc, this.path, this._session, this._settings,
             () => this.openPreferences(), showName);
         this._widgets.push(widget);
 
@@ -146,20 +146,8 @@ export default class GenshinResinExtension extends Extension {
     }
 
     _onAccountsChanged() {
-        const oldCount = this._widgets.length;
-        this._loadAccounts();
-
-        if (this._accounts.length === oldCount) {
-            const showName = this._settings.get_boolean('show-account-name');
-            for (let i = 0; i < this._widgets.length; i++) {
-                this._widgets[i].updateAccount(this._accounts[i], showName);
-                this._widgets[i].fetch();
-            }
-            this._updateAllLabels();
-            return;
-        }
-
         this._destroyWidgets();
+        this._loadAccounts();
 
         const position = this._settings.get_int('panel-position');
         const boxSide = this._settings.get_string('panel-box') || 'right';

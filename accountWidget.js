@@ -9,15 +9,11 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {
     fmtCompact,
-    ResinModule,
-    CommissionsModule,
-    BossesModule,
-    ExpeditionsModule,
-    CurrencyModule,
-    TransformerModule,
-    ErrorModule,
+    MODULE_REGISTRY,
+    MODULE_KEYS,
     AccountNameModule,
-} from './modules.js';
+    ErrorModule,
+} from './modules/index.js';
 
 const API_BASE = 'https://sg-public-api.hoyolab.com/event/game_record/genshin/api';
 const DS_SALT = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
@@ -40,11 +36,19 @@ function generateDS() {
 }
 
 export class AccountWidget {
-    constructor(account, extensionPath, session, prefsCallback, showName) {
+    constructor(account, extensionPath, session, settings, prefsCallback, showName) {
         this._account = account;
         this._session = session;
+        this._settings = settings;
         this._prefsCallback = prefsCallback;
         this._showName = showName;
+        this._enabled = account.modules || {};
+        this._order = account.moduleOrder || MODULE_KEYS;
+        this._instances = {};
+        this._cachedData = null;
+        this._cacheAge = null;
+
+        this._loadCachedData();
 
         this._indicator = new PanelMenu.Button(0.0, 'Genshin Resin', false);
 
@@ -68,8 +72,10 @@ export class AccountWidget {
 
         this._indicator.add_child(box);
         this._buildMenu();
+    }
 
-        this._cachedData = null;
+    _moduleEnabled(key) {
+        return this._enabled[key] !== false;
     }
 
     _buildMenu() {
@@ -80,29 +86,16 @@ export class AccountWidget {
         this._accountName.setName(this._account.name);
         this._accountName._item.visible = !this._showName;
 
-        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        this._resin = new ResinModule(menu);
-        this._resin.build();
-
-        this._commissions = new CommissionsModule(menu);
-        this._commissions.build();
-
-        this._bosses = new BossesModule(menu);
-        this._bosses.build();
-
-        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        this._expeditions = new ExpeditionsModule(menu);
-        this._expeditions.build();
-
-        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        this._currency = new CurrencyModule(menu);
-        this._currency.build();
-
-        this._transformer = new TransformerModule(menu);
-        this._transformer.build();
+        this._instances = {};
+        for (const key of this._order) {
+            if (!this._moduleEnabled(key)) continue;
+            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+            const M = MODULE_REGISTRY[key];
+            if (!M) continue;
+            const inst = new M(menu);
+            inst.build();
+            this._instances[key] = inst;
+        }
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -111,6 +104,9 @@ export class AccountWidget {
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
+        menu.addAction('Copy UID', () => {
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, this._account.uid);
+        });
         menu.addAction('Refresh Now', () => this.fetch());
         menu.addAction('Preferences', () => this._prefsCallback?.());
     }
@@ -121,6 +117,12 @@ export class AccountWidget {
 
     updateAccount(account, showName) {
         this._account = account;
+        this._enabled = account.modules || {};
+        this._order = account.moduleOrder || MODULE_KEYS;
+        this._cachedData = null;
+        this._cacheAge = null;
+        this._loadCachedData();
+
         if (showName !== undefined) {
             this._showName = showName;
             if (this._accountName)
@@ -130,12 +132,37 @@ export class AccountWidget {
             this._accountName.setName(account.name);
     }
 
+    _loadCachedData() {
+        try {
+            const raw = JSON.parse(this._settings.get_string('last-data'));
+            const entry = raw[this._account.uid];
+            if (entry && entry.data) {
+                this._cachedData = entry.data;
+                this._cacheAge = Math.floor(Date.now() / 1000) - (entry.ts || 0);
+            }
+        } catch (_) {
+            this._cacheAge = null;
+        }
+    }
+
+    _saveCachedData(data) {
+        try {
+            const raw = JSON.parse(this._settings.get_string('last-data'));
+            raw[this._account.uid] = {data, ts: Math.floor(Date.now() / 1000)};
+            this._settings.set_string('last-data', JSON.stringify(raw));
+            this._cacheAge = null;
+        } catch (_) {}
+    }
+
     _labelText() {
-        if (!this._resin)
-            return this._showName ? `${this._account.name}: --/--` : '--/--';
-        const {current, max} = this._resin.getEstimate();
+        const namePrefix = this._showName ? `${this._account.name}: ` : '';
+        const resin = this._instances['resin'];
+        if (!resin)
+            return `${namePrefix}--/--`;
+        const {current, max} = resin.getEstimate();
         const count = `${current}/${max}`;
-        return this._showName ? `${this._account.name}: ${count}` : count;
+        const suffix = this._cacheAge !== null ? ' (cached)' : '';
+        return `${namePrefix}${count}${suffix}`;
     }
 
     fetch() {
@@ -203,8 +230,10 @@ export class AccountWidget {
             }
 
             this._cachedData = data.data;
+            this._cacheAge = null;
             this._showError('');
             this.updateDisplay(data.data);
+            this._saveCachedData(data.data);
         } catch (e) {
             console.error(`[genshin-resin] parse error: ${e.message}`);
             this._showError(`Parse error: ${e.message}`);
@@ -212,22 +241,23 @@ export class AccountWidget {
     }
 
     updateDisplay(d) {
-        this._resin.update(d);
-        this._commissions.update(d);
-        this._bosses.update(d);
-        this._expeditions.update(d);
-        this._currency.update(d);
-        this._transformer.update(d);
+        for (const inst of Object.values(this._instances))
+            inst.update(d);
         this.updateLabel();
-        this._resin.updateTick();
+        this._instances['resin']?.updateTick();
     }
 
     updateLabel() {
         this._label.text = this._labelText();
 
-        const {current, max, remaining} = this._resin.getEstimate();
+        const resin = this._instances['resin'];
+        if (!resin) return;
+
+        const {current, max, remaining} = resin.getEstimate();
 
         let tooltip = `Resin: ${current}/${max} \u2192 ${fmtCompact(remaining)}`;
+        if (this._cacheAge !== null)
+            tooltip += `  (from ${fmtCompact(this._cacheAge)} ago)`;
 
         const d = this._cachedData;
         if (d) {
@@ -246,7 +276,9 @@ export class AccountWidget {
         this._indicator.tooltip_text = tooltip;
 
         if (!this._error.visible) {
-            if (current >= max)
+            if (this._cacheAge !== null)
+                this._label.style = 'color: #c4a000';
+            else if (current >= max)
                 this._label.style = 'color: #4e9a06';
             else if (current >= max * 0.9)
                 this._label.style = 'color: #fce94f';
@@ -256,32 +288,31 @@ export class AccountWidget {
     }
 
     updateTick() {
-        this._resin.updateTick();
+        this._instances['resin']?.updateTick();
     }
 
     clear() {
         this._cachedData = null;
-        this._resin.clear();
+        this._cacheAge = null;
+        for (const inst of Object.values(this._instances))
+            inst.clear();
     }
 
     _showError(msg) {
+        if (!this._error) return;
         if (msg) {
             this._error.show(msg);
-            this._label.style = 'color: #cc0000';
+            this._label.style = this._cachedData ? 'color: #c4a000' : 'color: #cc0000';
         } else {
             this._error.hide();
         }
     }
 
     destroy() {
-        this._accountName.destroy();
-        this._resin.destroy();
-        this._commissions.destroy();
-        this._bosses.destroy();
-        this._expeditions.destroy();
-        this._currency.destroy();
-        this._transformer.destroy();
-        this._error.destroy();
+        this._accountName?.destroy();
+        for (const inst of Object.values(this._instances))
+            inst.destroy();
+        this._error?.destroy();
         this._indicator.destroy();
     }
 }
