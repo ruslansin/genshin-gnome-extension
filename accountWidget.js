@@ -39,8 +39,10 @@ function generateDS() {
 }
 
 export class AccountWidget {
-    constructor(account, extensionPath) {
+    constructor(account, extensionPath, session, prefsCallback) {
         this._account = account;
+        this._session = session;
+        this._prefsCallback = prefsCallback;
 
         this._indicator = new PanelMenu.Button(0.0, 'Genshin Resin', false);
 
@@ -72,40 +74,44 @@ export class AccountWidget {
         const menu = this._indicator.menu;
 
         this._resin = new ResinModule(menu);
+        this._resin.build();
+
         this._commissions = new CommissionsModule(menu);
+        this._commissions.build();
+
         this._bosses = new BossesModule(menu);
+        this._bosses.build();
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         this._expeditions = new ExpeditionsModule(menu);
+        this._expeditions.build();
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         this._currency = new CurrencyModule(menu);
+        this._currency.build();
+
         this._transformer = new TransformerModule(menu);
+        this._transformer.build();
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         this._error = new ErrorModule(menu);
+        this._error.build();
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         menu.addAction('Refresh Now', () => this.fetch());
-
-        this._resin.build();
-        this._commissions.build();
-        this._bosses.build();
-        this._expeditions.build();
-        this._currency.build();
-        this._transformer.build();
-        this._error.build();
+        menu.addAction('Preferences', () => this._prefsCallback?.());
     }
 
     get indicator() {
         return this._indicator;
     }
 
-    fetch(session) {
+    fetch() {
+        const session = this._session;
         const {uid, server, ltuid, ltoken, ltmid, accountId, cookieToken} =
             this._account;
 

@@ -70,14 +70,15 @@ export default class GenshinResinExtension extends Extension {
 
     _addWidget(index, position, boxSide) {
         const acc = this._accounts[index];
-        const widget = new AccountWidget(acc, this.path);
+        const widget = new AccountWidget(acc, this.path, this._session,
+            () => this.openPreferences());
         this._widgets.push(widget);
 
         Main.panel.addToStatusArea(
             `${this.uuid}-${index}`, widget.indicator,
             position >= 0 ? position + index : position, boxSide);
 
-        widget.fetch(this._session);
+        widget.fetch();
     }
 
     _destroyWidgets() {
@@ -88,7 +89,7 @@ export default class GenshinResinExtension extends Extension {
 
     _fetchAll() {
         for (const widget of this._widgets)
-            widget.fetch(this._session);
+            widget.fetch();
     }
 
     _updateAllLabels() {
