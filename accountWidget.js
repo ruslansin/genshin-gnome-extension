@@ -16,6 +16,7 @@ import {
     CurrencyModule,
     TransformerModule,
     ErrorModule,
+    AccountNameModule,
 } from './modules.js';
 
 const API_BASE = 'https://sg-public-api.hoyolab.com/event/game_record/genshin/api';
@@ -74,6 +75,13 @@ export class AccountWidget {
     _buildMenu() {
         const menu = this._indicator.menu;
 
+        this._accountName = new AccountNameModule(menu);
+        this._accountName.build();
+        this._accountName.setName(this._account.name);
+        this._accountName._item.visible = !this._showName;
+
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
         this._resin = new ResinModule(menu);
         this._resin.build();
 
@@ -113,11 +121,18 @@ export class AccountWidget {
 
     updateAccount(account, showName) {
         this._account = account;
-        if (showName !== undefined)
+        if (showName !== undefined) {
             this._showName = showName;
+            if (this._accountName)
+                this._accountName._item.visible = !showName;
+        }
+        if (this._accountName)
+            this._accountName.setName(account.name);
     }
 
     _labelText() {
+        if (!this._resin)
+            return this._showName ? `${this._account.name}: --/--` : '--/--';
         const {current, max} = this._resin.getEstimate();
         const count = `${current}/${max}`;
         return this._showName ? `${this._account.name}: ${count}` : count;
@@ -259,6 +274,7 @@ export class AccountWidget {
     }
 
     destroy() {
+        this._accountName.destroy();
         this._resin.destroy();
         this._commissions.destroy();
         this._bosses.destroy();
