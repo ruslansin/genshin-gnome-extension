@@ -19,6 +19,7 @@ cp "$SCRIPT_DIR/metadata.json" "$EXT_DIR/"
 cp "$SCRIPT_DIR/extension.js" "$EXT_DIR/"
 cp "$SCRIPT_DIR/prefs.js" "$EXT_DIR/"
 cp "$SCRIPT_DIR/stylesheet.css" "$EXT_DIR/"
+cp -r "$SCRIPT_DIR/assets" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/schemas" "$EXT_DIR/"
 
 echo "==> Compiling GSettings schema..."

@@ -16,6 +16,8 @@ cp "$SCRIPT_DIR/prefs.js"       "$BUILD_DIR/"
 cp "$SCRIPT_DIR/stylesheet.css" "$BUILD_DIR/"
 mkdir -p "$BUILD_DIR/schemas"
 cp "$SCRIPT_DIR/schemas"/*.xml  "$BUILD_DIR/schemas/"
+mkdir -p "$BUILD_DIR/assets"
+cp "$SCRIPT_DIR/assets/resin.svg" "$BUILD_DIR/assets/"
 
 echo "==> Creating $ZIP_FILE..."
 rm -f "$SCRIPT_DIR/$ZIP_FILE"

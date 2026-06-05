@@ -1,5 +1,6 @@
 import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -64,9 +65,11 @@ export default class GenshinResinExtension extends Extension {
 
         const box = new St.BoxLayout({vertical: false});
 
-        this._icon = new St.Label({
-            text: '\u25C6',
-            style_class: 'genshin-resin-label',
+        const iconFile = Gio.File.new_for_path(this.path + '/assets/resin.svg');
+        this._icon = new St.Icon({
+            gicon: new Gio.FileIcon({file: iconFile}),
+            style_class: 'genshin-resin-icon',
+            icon_size: 16,
             y_align: Clutter.ActorAlign.CENTER,
         });
         box.add_child(this._icon);
@@ -382,7 +385,7 @@ export default class GenshinResinExtension extends Extension {
         if (msg) {
             this._errorItem.label.text = msg;
             this._errorItem.visible = true;
-            this._icon.style = 'color: #cc0000';
+            this._label.style = 'color: #cc0000';
         } else {
             this._errorItem.visible = false;
         }
@@ -412,11 +415,11 @@ export default class GenshinResinExtension extends Extension {
 
         if (this._errorItem && !this._errorItem.visible) {
             if (current >= max)
-                this._icon.style = 'color: #4e9a06';
+                this._label.style = 'color: #4e9a06';
             else if (current >= max * 0.9)
-                this._icon.style = 'color: #fce94f';
+                this._label.style = 'color: #fce94f';
             else
-                this._icon.style = '';
+                this._label.style = '';
         }
     }
 
