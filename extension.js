@@ -96,6 +96,10 @@ export default class GenshinResinExtension extends Extension {
             GLib.PRIORITY_DEFAULT, 60,
             () => { this._updateLabel(); return GLib.SOURCE_CONTINUE; });
 
+        this._tickSource = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT, 1000,
+            () => { this._updateNextTick(); return GLib.SOURCE_CONTINUE; });
+
         this._fetchNotes();
     }
 
@@ -108,6 +112,10 @@ export default class GenshinResinExtension extends Extension {
             GLib.source_remove(this._labelSource);
             this._labelSource = null;
         }
+        if (this._tickSource) {
+            GLib.source_remove(this._tickSource);
+            this._tickSource = null;
+        }
         this._indicator?.destroy();
         this._indicator = null;
         this._settings = null;
@@ -119,6 +127,9 @@ export default class GenshinResinExtension extends Extension {
 
         this._resinItem = new PopupMenu.PopupMenuItem('', {reactive: false});
         menu.addMenuItem(this._resinItem);
+
+        this._nextTickItem = new PopupMenu.PopupMenuItem('', {reactive: false});
+        menu.addMenuItem(this._nextTickItem);
 
         this._commItem = new PopupMenu.PopupMenuItem('', {reactive: false});
         menu.addMenuItem(this._commItem);
@@ -237,6 +248,7 @@ export default class GenshinResinExtension extends Extension {
             this._updateError('');
             this._updateLabel();
             this._updateMenu(d);
+            this._updateNextTick();
         } catch (e) {
             console.error(`[genshin-resin] parse error: ${e.message}`);
             this._updateError(`Parse error: ${e.message}`);
@@ -325,8 +337,10 @@ export default class GenshinResinExtension extends Extension {
         const current = Math.min(lastResin + regenerated, maxResin);
         const remaining = Math.max(0,
             (maxResin - current) * RESIN_SECONDS - (elapsed % RESIN_SECONDS));
+        const nextTick = current >= maxResin ? 0 :
+            Math.max(0, RESIN_SECONDS - (elapsed % RESIN_SECONDS));
 
-        return {current, max: maxResin, remaining};
+        return {current, max: maxResin, remaining, nextTick};
     }
 
     _updateError(msg) {
@@ -370,5 +384,14 @@ export default class GenshinResinExtension extends Extension {
             else
                 this._icon.style = '';
         }
+    }
+
+    _updateNextTick() {
+        const {nextTick} = this._getEstimatedResin();
+        if (!this._nextTickItem) return;
+        this._nextTickItem.label.text = nextTick > 0
+            ? `\u21BB Next resin: ${fmtTimer(nextTick)}`
+            : '';
+        this._nextTickItem.visible = nextTick > 0;
     }
 }
