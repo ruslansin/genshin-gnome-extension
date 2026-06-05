@@ -213,7 +213,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
     }
 
     _rebuildAccountList() {
-        this._accountList.splice(0, this._accountList.get_n_items());
+        while (this._accountList.get_n_items() > 0)
+            this._accountList.remove(0);
         for (const acc of this._accounts)
             this._accountList.append(acc.name);
     }
