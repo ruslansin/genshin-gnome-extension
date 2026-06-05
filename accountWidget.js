@@ -39,10 +39,11 @@ function generateDS() {
 }
 
 export class AccountWidget {
-    constructor(account, extensionPath, session, prefsCallback) {
+    constructor(account, extensionPath, session, prefsCallback, showName) {
         this._account = account;
         this._session = session;
         this._prefsCallback = prefsCallback;
+        this._showName = showName;
 
         this._indicator = new PanelMenu.Button(0.0, 'Genshin Resin', false);
 
@@ -58,7 +59,7 @@ export class AccountWidget {
         box.add_child(icon);
 
         this._label = new St.Label({
-            text: `${account.name}: --/--`,
+            text: this._labelText(),
             style_class: 'genshin-resin-label',
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -108,6 +109,18 @@ export class AccountWidget {
 
     get indicator() {
         return this._indicator;
+    }
+
+    updateAccount(account, showName) {
+        this._account = account;
+        if (showName !== undefined)
+            this._showName = showName;
+    }
+
+    _labelText() {
+        const {current, max} = this._resin.getEstimate();
+        const count = `${current}/${max}`;
+        return this._showName ? `${this._account.name}: ${count}` : count;
     }
 
     fetch() {
@@ -195,8 +208,9 @@ export class AccountWidget {
     }
 
     updateLabel() {
+        this._label.text = this._labelText();
+
         const {current, max, remaining} = this._resin.getEstimate();
-        this._label.text = `${this._account.name}: ${current}/${max}`;
 
         let tooltip = `Resin: ${current}/${max} \u2192 ${fmtCompact(remaining)}`;
 

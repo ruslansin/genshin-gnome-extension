@@ -16,13 +16,16 @@ export default class GenshinResinExtension extends Extension {
 
         const position = this._settings.get_int('panel-position');
         const boxSide = this._settings.get_string('panel-box') || 'right';
+        const showName = this._settings.get_boolean('show-account-name');
 
-        for (let i = 0; i < this._accounts.length; i++) {
-            this._addWidget(i, position, boxSide);
-        }
+        for (let i = 0; i < this._accounts.length; i++)
+            this._addWidget(i, position, boxSide, showName);
 
         this._accountsChangedId = this._settings.connect(
             'changed::accounts', () => this._onAccountsChanged());
+
+        this._showNameChangedId = this._settings.connect(
+            'changed::show-account-name', () => this._onShowNameChanged());
 
         const pollInterval = this._settings.get_int('poll-interval') || 300;
         this._pollSource = GLib.timeout_add_seconds(
@@ -61,6 +64,10 @@ export default class GenshinResinExtension extends Extension {
             this._settings.disconnect(this._accountsChangedId);
             this._accountsChangedId = null;
         }
+        if (this._settings && this._showNameChangedId) {
+            this._settings.disconnect(this._showNameChangedId);
+            this._showNameChangedId = null;
+        }
 
         this._destroyWidgets();
 
@@ -68,10 +75,10 @@ export default class GenshinResinExtension extends Extension {
         this._accounts = null;
     }
 
-    _addWidget(index, position, boxSide) {
+    _addWidget(index, position, boxSide, showName) {
         const acc = this._accounts[index];
         const widget = new AccountWidget(acc, this.path, this._session,
-            () => this.openPreferences());
+            () => this.openPreferences(), showName);
         this._widgets.push(widget);
 
         Main.panel.addToStatusArea(
@@ -130,12 +137,25 @@ export default class GenshinResinExtension extends Extension {
         }
     }
 
+    _onShowNameChanged() {
+        const showName = this._settings.get_boolean('show-account-name');
+        for (const widget of this._widgets) {
+            widget.updateAccount(widget._account, showName);
+            widget.updateLabel();
+        }
+    }
+
     _onAccountsChanged() {
         const oldCount = this._widgets.length;
         this._loadAccounts();
 
         if (this._accounts.length === oldCount) {
-            this._fetchAll();
+            const showName = this._settings.get_boolean('show-account-name');
+            for (let i = 0; i < this._widgets.length; i++) {
+                this._widgets[i].updateAccount(this._accounts[i], showName);
+                this._widgets[i].fetch();
+            }
+            this._updateAllLabels();
             return;
         }
 
@@ -143,7 +163,8 @@ export default class GenshinResinExtension extends Extension {
 
         const position = this._settings.get_int('panel-position');
         const boxSide = this._settings.get_string('panel-box') || 'right';
+        const showName = this._settings.get_boolean('show-account-name');
         for (let i = 0; i < this._accounts.length; i++)
-            this._addWidget(i, position, boxSide);
+            this._addWidget(i, position, boxSide, showName);
     }
 }

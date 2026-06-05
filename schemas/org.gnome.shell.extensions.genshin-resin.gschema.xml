@@ -87,5 +87,11 @@
       <description>Which panel box: "left", "center", or "right"</description>
     </key>
 
+    <key name="show-account-name" type="b">
+      <default>true</default>
+      <summary>Show account name on panel</summary>
+      <description>Whether to show the account name before the resin count on the panel label</description>
+    </key>
+
   </schema>
 </schemalist>

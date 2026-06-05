@@ -61,6 +61,14 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT);
         displayGroup.add(posRow);
 
+        const showNameRow = new Adw.SwitchRow({
+            title: _('Show Account Name'),
+            subtitle: _('Show the account name before the resin count'),
+        });
+        window._settings.bind('show-account-name', showNameRow, 'active',
+            Gio.SettingsBindFlags.DEFAULT);
+        displayGroup.add(showNameRow);
+
         const advancedGroup = new Adw.PreferencesGroup({title: _('Advanced')});
         generalPage.add(advancedGroup);
 
@@ -247,8 +255,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         acc.accountId = this._accountIdRow.text;
         acc.cookieToken = this._cookieTokenRow.text;
         this._saveAccounts();
-        this._rebuildAccountList();
-        this._accountCombo.selected = idx;
+        if (this._accountList.get_string(idx) !== acc.name)
+            this._accountList.splice(idx, 1, acc.name);
     }
 
     _addCookieRow(group, title) {
