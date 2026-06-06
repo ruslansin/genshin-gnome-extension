@@ -28,5 +28,14 @@ rm -f "$SCRIPT_DIR/$ZIP_FILE"
 echo "==> Cleaning up..."
 rm -rf "$BUILD_DIR"
 
+if command -v shexli &>/dev/null || [ -x "$SCRIPT_DIR/venv/bin/shexli" ]; then
+    echo "==> Running shexli lint..."
+    shexli_cmd="${SCRIPT_DIR}/venv/bin/shexli"
+    command -v shexli &>/dev/null && shexli_cmd="shexli"
+    set +e
+    "$shexli_cmd" "$SCRIPT_DIR/$ZIP_FILE"
+    set -e
+fi
+
 echo ""
 echo "==> Done! Upload $ZIP_FILE to https://extensions.gnome.org/upload/"

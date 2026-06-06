@@ -8,8 +8,8 @@ export const label = 'Realm Currency';
 export const notifications = true;
 
 export default class CurrencyModule extends Module {
-    constructor(menu) {
-        super(menu);
+    constructor(menu, session, account) {
+        super(menu, session, account);
         this._guard = new NotifyGuard();
     }
 

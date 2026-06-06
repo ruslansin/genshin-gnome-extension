@@ -9,6 +9,7 @@ import ExpeditionsModule from './expeditions.js';
 import CurrencyModule from './currency.js';
 import TransformerModule from './transformer.js';
 import AbyssModule from './abyss.js';
+import ExplorationModule from './exploration.js';
 import ErrorModule from './error.js';
 import AccountNameModule from './account-name.js';
 
@@ -20,6 +21,7 @@ export {
     CurrencyModule,
     TransformerModule,
     AbyssModule,
+    ExplorationModule,
     ErrorModule,
     AccountNameModule,
 };
@@ -32,4 +34,5 @@ export const MODULE_REGISTRY = {
     currency: CurrencyModule,
     transformer: TransformerModule,
     abyss: AbyssModule,
+    exploration: ExplorationModule,
 };

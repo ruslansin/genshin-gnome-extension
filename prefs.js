@@ -281,6 +281,10 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
         for (const row of Object.values(this._moduleRows))
             this._moduleGroup.remove(row);
+        if (this._hideDoneRow) {
+            this._moduleGroup.remove(this._hideDoneRow);
+            this._hideDoneRow = null;
+        }
         this._moduleRows = {};
 
         let order = acc ? (acc.moduleOrder || [...MODULE_KEYS]) : [];
@@ -346,6 +350,25 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             this._moduleGroup.add(row);
             this._moduleRows[key] = row;
         }
+
+        // Exploration-specific preference
+        const hideDoneKey = 'hide_exploration_done';
+        const hideDoneOn = enabled[hideDoneKey] === true;
+        const hideRow = new Adw.SwitchRow({
+            title: _('Hide completed regions'),
+        });
+        hideRow.active = hideDoneOn;
+        hideRow.connect('notify::active', () => {
+            if (this._loading) return;
+            const idx = this._moduleAccountCombo.selected;
+            if (idx < 0 || idx >= this._accounts.length) return;
+            const acc = this._accounts[idx];
+            if (!acc.modules) acc.modules = {};
+            acc.modules[hideDoneKey] = hideRow.active;
+            this._saveAccounts();
+        });
+        this._moduleGroup.add(hideRow);
+        this._hideDoneRow = hideRow;
     }
 
     _moveModule(key, direction) {

@@ -27,7 +27,7 @@ cp -r "$SCRIPT_DIR/schemas" "$EXT_DIR/"
 echo "==> Generating module metadata..."
 {
     echo 'export const MODULE_KEYS = ['
-    for key in resin commissions bosses expeditions abyss currency transformer; do
+    for key in resin commissions bosses expeditions exploration abyss currency transformer; do
         echo "  '$key',"
     done
     echo '];'

@@ -8,8 +8,8 @@ export const label = 'Resin';
 export const notifications = true;
 
 export default class ResinModule extends Module {
-    constructor(menu) {
-        super(menu);
+    constructor(menu, session, account) {
+        super(menu, session, account);
         this._cache = {maxResin: 200, lastResin: 0, lastUpdate: 0};
         this._guard = new NotifyGuard();
     }

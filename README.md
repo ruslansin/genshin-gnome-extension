@@ -17,11 +17,12 @@ GNOME Shell extension that shows your Genshin Impact real-time resources in the 
   - Daily commissions status
   - Weekly boss discount claims remaining
   - Expedition countdown timers per character
+  - Spiral Abyss progress (floor, stars, time left)
+  - Exploration progress (per-region %, parent-child hierarchy)
   - Realm currency + time until cap
   - Parametric Transformer status
-  - Spiral Abyss progress (floor, stars, time left)
   - Copy UID to clipboard
-- **Desktop notifications** — per-module alerts when resin is full, expeditions finish, transformer ready, or currency caps
+- **Desktop notifications** — per-module alerts with individual on/off toggles
 - **Automatic refresh** via HoYoLAB Battle Chronicle API
 - **Local interpolation** between API calls (1 resin per 8 minutes)
 - **Modular architecture** — each feature is an independent module; reorder, enable, or disable per account in preferences
@@ -61,6 +62,18 @@ Expeditions: 5/5
    ⏳ 02:34:11
 ───────────────────
 ⚔ Spiral Abyss: Floor 12-3  ★ 36/36  → 15d 6h
+───────────────────
+Exploration: 3/17 complete (avg 52.9%)
+   Nod-Krai: 72.0%
+   Natlan: 34.0%
+   Chenyu Vale: 0.0%
+      Upper Vale: 59.3%
+      Southern Mountain: 68.7%
+   Fontaine: 27.0%
+   Sumeru: 24.0%
+   The Chasm: 46.9%
+      Underground Mines: 52.2%
+   ...
 ───────────────────
 ⌂ Realm Currency: 630/2400  → 58h 20m
 ⚗ Transformer: Ready!
@@ -118,9 +131,11 @@ Then:
    - Adjust panel section and position
    - Change the API poll interval
 
-6. Under **Feature Modules**, per account:
-   - Toggle individual modules on or off
-   - Use up/down arrows to reorder modules in the popup menu
+6. Under the **Modules** tab, per account:
+    - Toggle individual modules on or off
+    - Use up/down arrows to reorder modules in the popup menu
+    - Toggle ●/○ to enable or disable notifications per module
+    - Toggle **Hide completed regions** to collapse 100% exploration entries
 
 7. The indicator should show your resin count within ~30 seconds
 
@@ -161,6 +176,7 @@ modules/             — Plugin-style feature modules
   bosses.js          —   Weekly boss discounts
   expeditions.js     —   Expedition timers + done notification
   abyss.js           —   Spiral Abyss progress (independent API)
+  exploration.js     —   Exploration progress per region (independent API, parent-child hierarchy)
   currency.js        —   Realm currency + cap notification
   transformer.js     —   Parametric transformer + ready notification
   error.js           —   Error display

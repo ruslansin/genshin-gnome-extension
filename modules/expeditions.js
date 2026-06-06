@@ -8,8 +8,8 @@ export const label = 'Expeditions';
 export const notifications = true;
 
 export default class ExpeditionsModule extends Module {
-    constructor(menu) {
-        super(menu);
+    constructor(menu, session, account) {
+        super(menu, session, account);
         this._guard = new NotifyGuard();
     }
 
