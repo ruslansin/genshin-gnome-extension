@@ -21,6 +21,7 @@ cp "$SCRIPT_DIR/prefs.js" "$EXT_DIR/"
 cp "$SCRIPT_DIR/accountWidget.js" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/modules" "$EXT_DIR/"
 cp "$SCRIPT_DIR/stylesheet.css" "$EXT_DIR/"
+cp -r "$SCRIPT_DIR/translations" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/assets" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/schemas" "$EXT_DIR/"
 

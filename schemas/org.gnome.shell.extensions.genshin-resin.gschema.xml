@@ -81,5 +81,11 @@
       <description>Whether to show the account name before the resin count on the panel label</description>
     </key>
 
+    <key name="language" type="s">
+      <default>"system"</default>
+      <summary>Extension language</summary>
+      <description>Language for module labels, notifications, and API requests. "system" uses the current desktop locale. Falls back to English for unsupported locales.</description>
+    </key>
+
   </schema>
 </schemalist>

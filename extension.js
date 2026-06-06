@@ -5,12 +5,15 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {AccountWidget} from './accountWidget.js';
+import {setLanguage} from './modules/i18n.js';
 
 export default class GenshinResinExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         this._session = new Soup.Session();
         this._widgets = [];
+
+        setLanguage(this._settings.get_string('language') || 'system');
 
         this._loadAccounts();
 
@@ -26,6 +29,11 @@ export default class GenshinResinExtension extends Extension {
 
         this._showNameChangedId = this._settings.connect(
             'changed::show-account-name', () => this._onShowNameChanged());
+
+        this._langChangedId = this._settings.connect(
+            'changed::language', () => {
+                setLanguage(this._settings.get_string('language') || 'system');
+            });
 
         const pollInterval = this._settings.get_int('poll-interval') || 300;
         this._pollSource = GLib.timeout_add_seconds(
@@ -67,6 +75,10 @@ export default class GenshinResinExtension extends Extension {
         if (this._settings && this._showNameChangedId) {
             this._settings.disconnect(this._showNameChangedId);
             this._showNameChangedId = null;
+        }
+        if (this._settings && this._langChangedId) {
+            this._settings.disconnect(this._langChangedId);
+            this._langChangedId = null;
         }
 
         this._destroyWidgets();

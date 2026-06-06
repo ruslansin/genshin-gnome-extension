@@ -16,15 +16,17 @@ GNOME Shell extension that shows your Genshin Impact real-time resources in the 
   - Live next-resin countdown (per-second timer)
   - Daily commissions status
   - Weekly boss discount claims remaining
-  - Expedition timers (collapsible accordion)
+  - Expedition timers (submenu with nearest time on header)
   - Spiral Abyss progress (floor, stars, time left)
   - Imaginarium Theater status (act, medals, season countdown)
-  - Exploration progress (collapsible accordion, parent-child hierarchy)
+  - Exploration progress (submenu, per-region + sub-area breakdown, two-per-row compact view)
   - Realm currency + time until cap
   - Parametric Transformer status
   - Daily check-in reminder (claimed/not claimed)
   - Copy UID to clipboard
 - **Desktop notifications** — per-module alerts with individual on/off toggles
+- **15 languages** — full UI translations + API responses in English, Русский, 中文, 日本語, 한국어, Deutsch, Français, Español, Português, ไทย, Tiếng Việt, Türkçe, Italiano, Bahasa Indonesia
+- **Language selector** — in General preferences, auto-detects system locale, applies to API and UI
 - **Automatic refresh** via HoYoLAB Battle Chronicle API
 - **Local interpolation** between API calls (1 resin per 8 minutes)
 - **Modular architecture** — each feature is an independent module; reorder, enable, or disable per account in preferences
@@ -56,13 +58,13 @@ Main
 ✔ Commissions: 4/4 (claimed)
 ⚔ Weekly Bosses: 3/3 remaining
 ───────────────────
-Expeditions: 5/5 ▸
+Expeditions (5/5) · 02:34:11 ▸
 ───────────────────
 ⚔ Spiral Abyss: Floor 12-3  ★ 36/36  → 15d 6h
 ───────────────────
 🎭 Imaginarium Theater: Act 6  ★ 5  → 23d 7h
 ───────────────────
-Exploration: 3/17 complete (avg 52.9%) ▸
+Exploration (3/17, avg 52.9%) ▸
 ───────────────────
 ⌂ Realm Currency: 630/2400  → 58h 20m
 ⚗ Transformer: Ready!
@@ -72,6 +74,28 @@ Exploration: 3/17 complete (avg 52.9%) ▸
 Copy UID
 Refresh Now
 Preferences
+```
+
+Submenu examples:
+```
+▼ Expeditions (5/5) · 02:34:11
+   ✓ Done
+   ⏳ 01:23:45
+   ⏳ 04:12:30
+   ⏳ 08:55:10
+   ⏳ 12:40:00
+
+▼ Exploration (3/17, avg 52.9%)
+   Nod-Krai: 72.0%
+   · Paha Island: 100.0%  · Lempo Island: 100.0%
+   Natlan: 34.0%
+   · Tequemecan Valley: 36.0%  · Basin of Flames: 45.7%
+   · Toyek Streams: 42.5%  · Coatepec Mountain: 26.3%
+   Inazuma: 44.0%
+   · Narukami: 50.4%  · Kannazuka: 42.1%
+   · Yashiori: 67.3%  · Seirai: 41.0%
+   · Watatsumi: 33.1%  · Tsurumi: 49.3%
+   ...
 ```
 
 ## Requirements
@@ -118,9 +142,10 @@ Then:
    - Paste them into the preferences fields
 
 5. On the **General** page, optionally:
-   - Toggle **Show Account Name** to hide names from the panel
-   - Adjust panel section and position
-   - Change the API poll interval
+    - Select **Language** — auto-detects system locale, applies to API responses and UI
+    - Toggle **Show Account Name** to hide names from the panel
+    - Adjust panel section and position
+    - Change the API poll interval
 
 6. Under the **Modules** tab, per account:
     - Toggle individual modules on or off
@@ -167,13 +192,16 @@ modules/             — Plugin-style feature modules
   bosses.js          —   Weekly boss discounts
   expeditions.js     —   Expedition timers + done notification (accordion)
   abyss.js           —   Spiral Abyss progress (independent API)
-  exploration.js     —   Exploration progress per region (independent API, accordion)
+  exploration.js     —   Exploration progress per region (submenu, sub-area breakdown)
   theater.js         —   Imaginarium Theater (independent API)
   daily.js           —   Daily check-in reminder (independent API)
   currency.js        —   Realm currency + cap notification
   transformer.js     —   Parametric transformer + ready notification
   error.js           —   Error display
   account-name.js    —   Account name in menu
+  i18n.js            —   Translation loader (15 languages, system locale detection)
+translations/        —   JSON translation files per language
+  en/ ru/ zh_cn/ zh_tw/ ja/ ko/ th/ vi/ de/ fr/ es/ pt/ id/ tr/ it/
 ```
 
 ### Adding a new module

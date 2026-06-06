@@ -5,6 +5,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
 import {fmtDuration} from './util.js';
+import {apiLang, T} from './i18n.js';
 
 export const key = 'theater';
 export const label = 'Imaginarium Theater';
@@ -76,7 +77,7 @@ export default class TheaterModule extends Module {
             headers.append('DS', ds);
             headers.append('x-rpc-app_version', '1.5.0');
             headers.append('x-rpc-client_type', '5');
-            headers.append('x-rpc-language', 'en-us');
+            headers.append('x-rpc-language', apiLang());
             headers.append('Referer', 'https://act.hoyolab.com/');
             headers.append('User-Agent', USER_AGENT);
 
@@ -111,21 +112,22 @@ export default class TheaterModule extends Module {
 
     _labelText() {
         const d = this._data;
+        const name = T('theater.label', 'Imaginarium Theater');
         if (!d || !d.is_unlock)
-            return '\uD83C\uDFAD Imaginarium Theater: Not unlocked';
+            return '\uD83C\uDFAD ' + name + ': ' + T('theater.not_unlocked', 'Not unlocked');
 
         const season = this._seasonData();
         const schedule = (season && season.schedule) || {};
 
-        let text = '\uD83C\uDFAD Imaginarium Theater';
+        let text = '\uD83C\uDFAD ' + name;
 
         if (season && season.has_data) {
             const stat = season.stat || {};
             const round = stat.max_round_id || 0;
             const medals = stat.medal_num || 0;
-            text += `: Act ${round}  \u2605 ${medals}`;
+            text += `: ${T('theater.act', 'Act')} ${round}  \u2605 ${medals}`;
         } else {
-            text += `: Season ${schedule.schedule_id || '?'}`;
+            text += `: ${T('theater.season', 'Season')} ${schedule.schedule_id || '?'}`;
         }
 
         if (schedule.end_time) {

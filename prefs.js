@@ -4,6 +4,7 @@ import Adw from 'gi://Adw';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {MODULE_KEYS, MODULE_LABELS, MODULE_NOTIFICATIONS} from './modules/metadata.js';
+import {T, setLanguage} from './modules/i18n.js';
 
 const SERVER_KEYS = ['os_euro', 'os_usa', 'os_asia', 'os_cht'];
 const SERVER_LABELS = {
@@ -17,6 +18,7 @@ const SERVER_NAMES = SERVER_KEYS.map(k => SERVER_LABELS[k]);
 export default class GenshinResinPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         window._settings = this.getSettings();
+        setLanguage(window._settings.get_string('language') || 'system');
 
         this._accounts = this._loadAccounts();
         this._loading = true;
@@ -105,6 +107,41 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         window._settings.bind('show-account-name', showNameRow, 'active',
             Gio.SettingsBindFlags.DEFAULT);
         displayGroup.add(showNameRow);
+
+        const LANG_OPTIONS = [
+            'System',
+            'English',
+            '\u0420\u0443\u0441\u0441\u043A\u0438\u0439',
+            '\u4E2D\u6587\uFF08\u7B80\u4F53\uFF09',
+            '\u4E2D\u6587\uFF08\u7E41\u9AD4\uFF09',
+            '\u65E5\u672C\u8A9E',
+            '\uD55C\uAD6D\uC5B4',
+            '\u0E44\u0E17\u0E22',
+            'Ti\u1EBFng Vi\u1EC7t',
+            'Deutsch',
+            'Fran\u00E7ais',
+            'Espa\u00F1ol',
+            'Portugu\u00EAs',
+            'Bahasa Indonesia',
+            'T\u00FCrk\u00E7e',
+            'Italiano',
+        ];
+        const LANG_KEYS = ['system', 'en', 'ru', 'zh_cn', 'zh_tw', 'ja', 'ko', 'th', 'vi', 'de', 'fr', 'es', 'pt', 'id', 'tr', 'it'];
+
+        const langRow = new Adw.ComboRow({
+            title: _('Language'),
+            subtitle: _('Requires restart to take full effect'),
+            model: Gtk.StringList.new(LANG_OPTIONS),
+        });
+        const langRaw = window._settings.get_string('language') || 'system';
+        langRow.selected = LANG_KEYS.indexOf(langRaw);
+        if (langRow.selected < 0) langRow.selected = 0;
+        langRow.connect('notify::selected', () => {
+            const val = LANG_KEYS[langRow.selected] || 'system';
+            window._settings.set_string('language', val);
+            setLanguage(val);
+        });
+        displayGroup.add(langRow);
 
         const advancedGroup = new Adw.PreferencesGroup({title: _('Advanced')});
         page.add(advancedGroup);
@@ -297,7 +334,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
         for (let i = 0; i < order.length; i++) {
             const key = order[i];
-            const row = new Adw.SwitchRow({title: MODULE_LABELS[key] || key});
+            const row = new Adw.SwitchRow({title: T(`${key}.label`, MODULE_LABELS[key] || key)});
             row.active = enabled[key] !== false;
 
             const suffixBox = new Gtk.Box({spacing: 0});

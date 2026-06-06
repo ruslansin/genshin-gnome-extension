@@ -14,6 +14,7 @@ import {
     AccountNameModule,
     ErrorModule,
 } from './modules/index.js';
+import {T, apiLang} from './modules/i18n.js';
 
 const API_BASE = 'https://sg-public-api.hoyolab.com/event/game_record/genshin/api';
 const DS_SALT = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
@@ -114,11 +115,11 @@ export class AccountWidget {
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        menu.addAction('Copy UID', () => {
+        menu.addAction(T('common.copy_uid', 'Copy UID'), () => {
             St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, this._account.uid);
         });
-        menu.addAction('Refresh Now', () => this.fetch());
-        menu.addAction('Preferences', () => this._prefsCallback?.());
+        menu.addAction(T('common.refresh_now', 'Refresh Now'), () => this.fetch());
+        menu.addAction(T('common.preferences', 'Preferences'), () => this._prefsCallback?.());
     }
 
     get indicator() {
@@ -171,7 +172,7 @@ export class AccountWidget {
             return `${namePrefix}--/--`;
         const {current, max} = resin.getEstimate();
         const count = `${current}/${max}`;
-        const suffix = this._cacheAge !== null ? ' (cached)' : '';
+        const suffix = this._cacheAge !== null ? ` (${T('common.cached', 'cached')})` : '';
         return `${namePrefix}${count}${suffix}`;
     }
 
@@ -199,8 +200,8 @@ export class AccountWidget {
             headers.append('DS', ds);
             headers.append('x-rpc-app_version', '1.5.0');
             headers.append('x-rpc-client_type', '5');
-            headers.append('x-rpc-language', 'en-us');
-            headers.append('x-rpc-lang', 'en-us');
+            headers.append('x-rpc-language', apiLang());
+            headers.append('x-rpc-lang', apiLang());
             headers.append('Referer', 'https://act.hoyolab.com/');
             headers.append('User-Agent', USER_AGENT);
 

@@ -1,10 +1,10 @@
 import GLib from 'gi://GLib';
 import Soup from 'gi://Soup';
-import Clutter from 'gi://Clutter';
 
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
+import {T, apiLang} from './i18n.js';
 
 export const key = 'exploration';
 export const label = 'Exploration Progress';
@@ -12,6 +12,14 @@ export const label = 'Exploration Progress';
 const API_BASE = 'https://sg-public-api.hoyolab.com/event/game_record/genshin/api';
 const DS_SALT = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36';
+
+function pct100(raw) {
+    return Math.min((raw || 0) / 10, 100);
+}
+
+function pctStr(raw) {
+    return pct100(raw).toFixed(1) + '%';
+}
 
 function randStr(len) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -36,14 +44,11 @@ function childName(parent, child) {
     return child;
 }
 
-const MAX_ITEMS = 20;
-
 export default class ExplorationModule extends Module {
     constructor(menu, session, account) {
         super(menu, session, account);
         this._data = null;
         this._lastFetch = 0;
-        this._expanded = false;
     }
 
     get _hideDone() {
@@ -51,23 +56,11 @@ export default class ExplorationModule extends Module {
     }
 
     build() {
-        this._header = new PopupMenu.PopupMenuItem('Exploration');
-        this._header.activate = () => {};
-        this._header.connect('button-press-event', () => {
-            this._expanded = !this._expanded;
-            this._render();
-            return Clutter.EVENT_STOP;
-        });
+        this._header = new PopupMenu.PopupSubMenuMenuItem('');
         this._menu.addMenuItem(this._header);
         this._items.push(this._header);
 
-        this._regionItems = [];
-        for (let i = 0; i < MAX_ITEMS; i++) {
-            const item = new PopupMenu.PopupMenuItem('', {reactive: false});
-            this._regionItems.push(item);
-            this._menu.addMenuItem(item);
-            this._items.push(item);
-        }
+        this._itemsInSub = [];
     }
 
     update(_d) {
@@ -96,7 +89,7 @@ export default class ExplorationModule extends Module {
             headers.append('DS', ds);
             headers.append('x-rpc-app_version', '1.5.0');
             headers.append('x-rpc-client_type', '5');
-            headers.append('x-rpc-language', 'en-us');
+            headers.append('x-rpc-language', apiLang());
             headers.append('Referer', 'https://act.hoyolab.com/');
             headers.append('User-Agent', USER_AGENT);
 
@@ -132,7 +125,6 @@ export default class ExplorationModule extends Module {
     _render() {
         const regions = this._data?.world_explorations || [];
 
-        // Build id->region and parent->children maps
         const byId = new Map();
         const children = new Map();
         for (const r of regions) {
@@ -144,61 +136,74 @@ export default class ExplorationModule extends Module {
             }
         }
 
-        // Sort roots newest-first for stable display
         const roots = [...regions.filter(r => r.parent_id === 0)];
         roots.sort((a, b) => b.id - a.id);
 
         let completed = 0;
         let totalPct = 0;
-
         for (const r of regions) {
-            const pct = (r.exploration_percentage || 0) / 10;
-            totalPct += pct;
-            if (pct >= 100)
+            totalPct += pct100(r.exploration_percentage);
+            if (pct100(r.exploration_percentage) >= 100)
                 completed++;
         }
 
         const all = regions.length;
         const avg = all > 0 ? (totalPct / all).toFixed(1) : '0';
-        const arrow = this._expanded ? '\u25BE' : '\u25B8';
         this._header.label.text =
-            `Exploration: ${completed}/${all} complete (avg ${avg}%) ${arrow}`;
+            `${T('exploration.label', 'Exploration')} (${completed}/${all}, avg ${avg}%)`;
 
-        if (regions.length === 0 || !this._expanded) {
-            for (const item of this._regionItems)
-                item.visible = false;
+        // Clear submenu items
+        for (const item of this._itemsInSub)
+            item.destroy();
+        this._itemsInSub.length = 0;
+
+        const sub = this._header.menu;
+        if (!sub)
             return;
-        }
 
-        // Flatten: each parent followed by its children indented
-        const display = [];
+        const lines = [];
         for (const r of roots) {
-            const pct = (r.exploration_percentage || 0) / 10;
+            const pct = pct100(r.exploration_percentage);
             const kids = children.get(r.id) || [];
-            const kidEntries = [];
+            const areas = (r.area_exploration_list || []);
+
+            const entries = [];
             for (const kid of kids) {
-                const kp = (kid.exploration_percentage || 0) / 10;
+                const kp = pct100(kid.exploration_percentage);
                 if (!this._hideDone || kp < 100)
-                    kidEntries.push({name: `   ${childName(r.name, kid.name)}`, pct: kp});
+                    entries.push({name: childName(r.name, kid.name), pct: kp});
+            }
+            for (const a of areas) {
+                const ap = pct100(a.exploration_percentage);
+                if (!this._hideDone || ap < 100)
+                    entries.push({name: a.name, pct: ap});
             }
 
-            if (!this._hideDone || pct < 100 || kidEntries.length > 0) {
+            const hasKids = entries.length > 0;
+            if (!this._hideDone || pct < 100 || hasKids) {
                 if (!this._hideDone || pct < 100)
-                    display.push({name: r.name, pct});
-                for (const ke of kidEntries)
-                    display.push(ke);
+                    lines.push(`${r.name}: ${pctStr(r.exploration_percentage)}`);
+
+                let pair = '';
+                for (const e of entries) {
+                    const f = `  \u00B7 ${e.name}: ${e.pct.toFixed(1)}%`;
+                    if (pair) {
+                        lines.push(`${pair}  ${f}`);
+                        pair = '';
+                    } else {
+                        pair = f;
+                    }
+                }
+                if (pair)
+                    lines.push(pair);
             }
         }
 
-        for (let i = 0; i < this._regionItems.length; i++) {
-            if (i < display.length) {
-                const d = display[i];
-                this._regionItems[i].label.text =
-                    `${d.name}: ${d.pct.toFixed(1)}%`;
-                this._regionItems[i].visible = true;
-            } else {
-                this._regionItems[i].visible = false;
-            }
+        // Add lines as menu items in submenu
+        for (const line of lines) {
+            const item = new PopupMenu.PopupMenuItem(line, {reactive: false});
+            sub.addMenuItem(item);
+            this._itemsInSub.push(item);
         }
     }
 

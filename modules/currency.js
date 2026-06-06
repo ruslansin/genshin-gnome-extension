@@ -2,6 +2,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
 import {NotifyGuard, fmtDuration} from './util.js';
+import {T} from './i18n.js';
 
 export const key = 'currency';
 export const label = 'Realm Currency';
@@ -25,11 +26,11 @@ export default class CurrencyModule extends Module {
         const coinSec = Math.max(0,
             parseInt(data.home_coin_recovery_time, 10) || 0);
         this._item.label.text =
-            `\u2302 Realm Currency: ${coin}/${maxCoin}  \u2192 ${fmtDuration(coinSec)}`;
+            `\u2302 ${T('currency.label', 'Realm Currency')}: ${coin}/${maxCoin}  \u2192 ${fmtDuration(coinSec)}`;
 
         const notifyOn = this._account?.modules?.notify_currency !== false;
         this._guard.check('capped', coin >= maxCoin,
-            'Realm Currency reached', `${coin}/${maxCoin}`, notifyOn);
+            T('currency.notification_title', 'Realm Currency reached'), `${coin}/${maxCoin}`, notifyOn);
         this._guard.arm();
     }
 }

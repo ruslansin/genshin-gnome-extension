@@ -5,6 +5,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
 import {fmtDuration} from './util.js';
+import {T, apiLang} from './i18n.js';
 
 export const key = 'abyss';
 export const label = 'Spiral Abyss';
@@ -68,7 +69,7 @@ export default class AbyssModule extends Module {
             headers.append('DS', ds);
             headers.append('x-rpc-app_version', '1.5.0');
             headers.append('x-rpc-client_type', '5');
-            headers.append('x-rpc-language', 'en-us');
+            headers.append('x-rpc-language', apiLang());
             headers.append('Referer', 'https://act.hoyolab.com/');
             headers.append('User-Agent', USER_AGENT);
 
@@ -103,14 +104,15 @@ export default class AbyssModule extends Module {
 
     _labelText() {
         const d = this._data;
+        const name = T('abyss.label', 'Spiral Abyss');
         if (!d || !d.is_unlock)
-            return '\u2694 Spiral Abyss: Not unlocked yet';
+            return '\u2694 ' + name + ': ' + T('abyss.not_unlocked', 'Not unlocked yet');
 
         const floor = d.max_floor || '?-?';
         const stars = d.total_star ?? 0;
         const maxStars = (d.floors || []).length * 3 || 36;
 
-        let text = `\u2694 Spiral Abyss: Floor ${floor}  \u2605 ${stars}/${maxStars}`;
+        let text = `\u2694 ${name}: ${T('abyss.floor', 'Floor')} ${floor}  \u2605 ${stars}/${maxStars}`;
 
         if (d.end_time) {
             const endTs = parseInt(d.end_time, 10);

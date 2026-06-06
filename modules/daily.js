@@ -5,6 +5,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
 import {NotifyGuard} from './util.js';
+import {T, apiLang} from './i18n.js';
 
 export const key = 'daily';
 export const label = 'Daily Check-in';
@@ -63,7 +64,7 @@ export default class DailyModule extends Module {
 
         try {
             const ds = genDS();
-            const url = `${API_BASE}/info?lang=en-us&act_id=${ACT_ID}`;
+            const url = `${API_BASE}/info?lang=${apiLang()}&act_id=${ACT_ID}`;
             const uri = GLib.Uri.parse(url, GLib.UriFlags.NONE);
             const msg = Soup.Message.new_from_uri('GET', uri);
 
@@ -71,7 +72,7 @@ export default class DailyModule extends Module {
             headers.append('DS', ds);
             headers.append('x-rpc-app_version', '1.5.0');
             headers.append('x-rpc-client_type', '5');
-            headers.append('x-rpc-language', 'en-us');
+            headers.append('x-rpc-language', apiLang());
             headers.append('Referer', 'https://act.hoyolab.com/');
             headers.append('User-Agent', USER_AGENT);
 
@@ -107,22 +108,22 @@ export default class DailyModule extends Module {
     _labelText() {
         const d = this._data;
         if (!d)
-            return '\u2611 Daily Check-in: No data';
+            return '\u2611 ' + T('daily.label', 'Daily Check-in') + ': ' + T('daily.no_data', 'No data');
 
         const signed = d.is_sign || d.is_signed_in || false;
         const day = d.total_sign_day ?? d.sign_cnt ?? '?';
 
-        let text = '\u2611 Daily Check-in';
+        let text = '\u2611 ' + T('daily.label', 'Daily Check-in');
         if (signed) {
-            text += `: Claimed (${day}/31)`;
+            text += `: ${T('daily.claimed', 'Claimed')} (${day}/31)`;
         } else {
-            text += `: Not claimed! (${day}/31)`;
+            text += `: ${T('daily.not_claimed', 'Not claimed!')} (${day}/31)`;
         }
 
         const notifyOn = this._account?.modules?.notify_daily !== false;
         this._guard.check('not_signed', !signed,
-            'Daily check-in not claimed',
-            'Remember to claim your daily Hoyolab reward', notifyOn);
+            T('daily.notification_title', 'Daily check-in not claimed'),
+            T('daily.notification_body', 'Remember to claim your daily Hoyolab reward'), notifyOn);
         this._guard.arm();
 
         return text;
