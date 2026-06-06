@@ -14,6 +14,7 @@ const API_LANG_MAP = {
 
 let _lang = 'en';
 let _cache = {};
+let _loaded = false;
 
 function _detectSystemLang() {
     const names = GLib.get_language_names();
@@ -78,14 +79,6 @@ function _loadFromDisk(lang) {
     }
 }
 
-function _init() {
-    const lang = _detectSystemLang();
-    _lang = lang;
-    _cache = _loadFromDisk(lang);
-}
-
-_init();
-
 export function setLanguage(value) {
     let lang;
     if (value === 'system')
@@ -95,9 +88,10 @@ export function setLanguage(value) {
     else
         lang = 'en';
 
-    if (lang !== _lang) {
+    if (!_loaded || lang !== _lang) {
         _lang = lang;
         _cache = _loadFromDisk(lang);
+        _loaded = true;
     }
 }
 
