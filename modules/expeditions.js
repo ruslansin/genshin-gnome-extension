@@ -1,3 +1,4 @@
+import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {Module} from './module.js';
@@ -11,10 +12,17 @@ export default class ExpeditionsModule extends Module {
     constructor(menu, session, account) {
         super(menu, session, account);
         this._guard = new NotifyGuard();
+        this._expanded = false;
     }
 
     build() {
-        this._header = new PopupMenu.PopupMenuItem('Expeditions', {reactive: false});
+        this._header = new PopupMenu.PopupMenuItem('Expeditions');
+        this._header.activate = () => {};
+        this._header.connect('button-press-event', () => {
+            this._expanded = !this._expanded;
+            this._updateLabel();
+            return Clutter.EVENT_STOP;
+        });
         this._menu.addMenuItem(this._header);
         this._items.push(this._header);
 
@@ -28,9 +36,21 @@ export default class ExpeditionsModule extends Module {
     }
 
     update(data) {
+        this._data = data;
+        this._updateLabel();
+    }
+
+    _updateLabel() {
+        const data = this._data;
+        if (!data) return;
+
         const exps = data.expeditions || [];
+        const arrow = this._expanded ? '\u25BE' : '\u25B8';
+        this._header.label.text =
+            `Expeditions: ${data.current_expedition_num || 0}/${data.max_expedition_num || 5} ${arrow}`;
+
         for (let i = 0; i < 5; i++) {
-            if (i < exps.length) {
+            if (i < exps.length && this._expanded) {
                 const e = exps[i];
                 const remain = parseInt(e.remained_time, 10) || 0;
                 const done = e.status === 'Finished';
@@ -41,8 +61,6 @@ export default class ExpeditionsModule extends Module {
                 this._expItems[i].visible = false;
             }
         }
-        this._header.label.text =
-            `Expeditions: ${data.current_expedition_num || 0}/${data.max_expedition_num || 5}`;
 
         const allDone = exps.length > 0
             && exps.every(e => e.status === 'Finished');

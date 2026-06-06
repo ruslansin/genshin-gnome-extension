@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Soup from 'gi://Soup';
+import Clutter from 'gi://Clutter';
 
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
@@ -42,6 +43,7 @@ export default class ExplorationModule extends Module {
         super(menu, session, account);
         this._data = null;
         this._lastFetch = 0;
+        this._expanded = false;
     }
 
     get _hideDone() {
@@ -49,7 +51,13 @@ export default class ExplorationModule extends Module {
     }
 
     build() {
-        this._header = new PopupMenu.PopupMenuItem('Exploration', {reactive: false});
+        this._header = new PopupMenu.PopupMenuItem('Exploration');
+        this._header.activate = () => {};
+        this._header.connect('button-press-event', () => {
+            this._expanded = !this._expanded;
+            this._render();
+            return Clutter.EVENT_STOP;
+        });
         this._menu.addMenuItem(this._header);
         this._items.push(this._header);
 
@@ -124,13 +132,6 @@ export default class ExplorationModule extends Module {
     _render() {
         const regions = this._data?.world_explorations || [];
 
-        if (regions.length === 0) {
-            this._header.label.text = 'Exploration: No data';
-            for (const item of this._regionItems)
-                item.visible = false;
-            return;
-        }
-
         // Build id->region and parent->children maps
         const byId = new Map();
         const children = new Map();
@@ -147,24 +148,36 @@ export default class ExplorationModule extends Module {
         const roots = [...regions.filter(r => r.parent_id === 0)];
         roots.sort((a, b) => b.id - a.id);
 
-        // Flatten: each parent followed by its children indented
-        const display = [];
         let completed = 0;
         let totalPct = 0;
 
-        for (const r of roots) {
+        for (const r of regions) {
             const pct = (r.exploration_percentage || 0) / 10;
             totalPct += pct;
             if (pct >= 100)
                 completed++;
+        }
 
+        const all = regions.length;
+        const avg = all > 0 ? (totalPct / all).toFixed(1) : '0';
+        const arrow = this._expanded ? '\u25BE' : '\u25B8';
+        this._header.label.text =
+            `Exploration: ${completed}/${all} complete (avg ${avg}%) ${arrow}`;
+
+        if (regions.length === 0 || !this._expanded) {
+            for (const item of this._regionItems)
+                item.visible = false;
+            return;
+        }
+
+        // Flatten: each parent followed by its children indented
+        const display = [];
+        for (const r of roots) {
+            const pct = (r.exploration_percentage || 0) / 10;
             const kids = children.get(r.id) || [];
             const kidEntries = [];
             for (const kid of kids) {
                 const kp = (kid.exploration_percentage || 0) / 10;
-                totalPct += kp;
-                if (kp >= 100)
-                    completed++;
                 if (!this._hideDone || kp < 100)
                     kidEntries.push({name: `   ${childName(r.name, kid.name)}`, pct: kp});
             }
@@ -176,11 +189,6 @@ export default class ExplorationModule extends Module {
                     display.push(ke);
             }
         }
-
-        const all = regions.length;
-        const avg = all > 0 ? (totalPct / all).toFixed(1) : '0';
-        this._header.label.text =
-            `Exploration: ${completed}/${all} complete (avg ${avg}%)`;
 
         for (let i = 0; i < this._regionItems.length; i++) {
             if (i < display.length) {
