@@ -115,9 +115,6 @@ export class AccountWidget {
 
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        menu.addAction(T('common.copy_uid', 'Copy UID'), () => {
-            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, this._account.uid);
-        });
         menu.addAction(T('common.refresh_now', 'Refresh Now'), () => this.fetch());
         menu.addAction(T('common.preferences', 'Preferences'), () => this._prefsCallback?.());
     }

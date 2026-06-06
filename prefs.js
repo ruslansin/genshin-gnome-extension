@@ -2,18 +2,13 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
-import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {MODULE_KEYS, MODULE_LABELS, MODULE_NOTIFICATIONS} from './modules/metadata.js';
 import {T, setLanguage} from './modules/i18n.js';
 
 const SERVER_KEYS = ['os_euro', 'os_usa', 'os_asia', 'os_cht'];
-const SERVER_LABELS = {
-    'os_euro': 'Europe',
-    'os_usa': 'America',
-    'os_asia': 'Asia',
-    'os_cht': 'TW/HK/MO',
-};
-const SERVER_NAMES = SERVER_KEYS.map(k => SERVER_LABELS[k]);
+const SERVER_LABELS = ['Europe', 'America', 'Asia', 'TW/HK/MO'];
+function serverNames() { return SERVER_LABELS.map(s => T(s, s)); }
 
 export default class GenshinResinPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -61,19 +56,19 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
     _buildGeneralPage(window) {
         const page = new Adw.PreferencesPage({
-            title: _('General'),
+            title: T('General'),
             icon_name: 'dialog-information-symbolic',
         });
         window.add(page);
 
         const displayGroup = new Adw.PreferencesGroup({
-            title: _('Panel Display'),
-            description: _('Changes apply after restarting GNOME Shell'),
+            title: T('Panel Display'),
+            description: T('Changes apply after restarting GNOME Shell'),
         });
         page.add(displayGroup);
 
         const boxRow = new Adw.ComboRow({
-            title: _('Panel Section'),
+            title: T('Panel Section'),
             model: Gtk.StringList.new(['Right', 'Center', 'Left']),
         });
         const boxMap = {0: 'right', 1: 'center', 2: 'left'};
@@ -87,8 +82,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         displayGroup.add(boxRow);
 
         const posRow = new Adw.SpinRow({
-            title: _('Position'),
-            subtitle: _('Order within the section (-1 = end, 0 = start)'),
+            title: T('Position'),
+            subtitle: T('Order within the section (-1 = end, 0 = start)'),
             adjustment: new Gtk.Adjustment({
                 value: window._settings.get_int('panel-position'),
                 lower: -1,
@@ -101,8 +96,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         displayGroup.add(posRow);
 
         const showNameRow = new Adw.SwitchRow({
-            title: _('Show Account Name'),
-            subtitle: _('Show the account name before the resin count'),
+            title: T('Show Account Name'),
+            subtitle: T('Show the account name before the resin count'),
         });
         window._settings.bind('show-account-name', showNameRow, 'active',
             Gio.SettingsBindFlags.DEFAULT);
@@ -129,8 +124,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         const LANG_KEYS = ['system', 'en', 'ru', 'zh_cn', 'zh_tw', 'ja', 'ko', 'th', 'vi', 'de', 'fr', 'es', 'pt', 'id', 'tr', 'it'];
 
         const langRow = new Adw.ComboRow({
-            title: _('Language'),
-            subtitle: _('Requires restart to take full effect'),
+            title: T('Language'),
+            subtitle: T('Requires restart to take full effect'),
             model: Gtk.StringList.new(LANG_OPTIONS),
         });
         const langRaw = window._settings.get_string('language') || 'system';
@@ -143,12 +138,12 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         });
         displayGroup.add(langRow);
 
-        const advancedGroup = new Adw.PreferencesGroup({title: _('Advanced')});
+        const advancedGroup = new Adw.PreferencesGroup({title: T('Advanced')});
         page.add(advancedGroup);
 
         const pollRow = new Adw.SpinRow({
-            title: _('Poll Interval (seconds)'),
-            subtitle: _('How often to fetch from the HoYoLAB API'),
+            title: T('Poll Interval (seconds)'),
+            subtitle: T('How often to fetch from the HoYoLAB API'),
             adjustment: new Gtk.Adjustment({
                 value: window._settings.get_int('poll-interval'),
                 lower: 60,
@@ -165,17 +160,17 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
     _buildAccountsPage(window) {
         const page = new Adw.PreferencesPage({
-            title: _('Accounts'),
+            title: T('Accounts'),
             icon_name: 'system-users-symbolic',
         });
         window.add(page);
 
-        const selGroup = new Adw.PreferencesGroup({title: _('Manage Accounts')});
+        const selGroup = new Adw.PreferencesGroup({title: T('Manage Accounts')});
         page.add(selGroup);
 
         this._accountList = Gtk.StringList.new([]);
         this._accountCombo = new Adw.ComboRow({
-            title: _('Select Account'),
+            title: T('Select Account'),
             model: this._accountList,
         });
 
@@ -183,12 +178,12 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         btnBox.add_css_class('linked');
         const addBtn = new Gtk.Button({
             icon_name: 'list-add-symbolic',
-            tooltip_text: _('Add new account'),
+            tooltip_text: T('Add new account'),
             valign: Gtk.Align.CENTER,
         });
         const delBtn = new Gtk.Button({
             icon_name: 'list-remove-symbolic',
-            tooltip_text: _('Remove current account'),
+            tooltip_text: T('Remove current account'),
             valign: Gtk.Align.CENTER,
         });
         btnBox.append(addBtn);
@@ -201,7 +196,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             for (const k of MODULE_KEYS)
                 modules[k] = true;
             this._accounts.push({
-                name: `Account ${this._accounts.length + 1}`,
+                name: `${T('Account', 'Account')} ${this._accounts.length + 1}`,
                 uid: '',
                 server: 'os_euro',
                 ltuid: '',
@@ -236,29 +231,29 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             delBtn.sensitive = this._accounts.length > 1;
         });
 
-        const detailGroup = new Adw.PreferencesGroup({title: _('Account Details')});
+        const detailGroup = new Adw.PreferencesGroup({title: T('Account Details')});
         page.add(detailGroup);
 
-        this._nameRow = new Adw.EntryRow({title: _('Account Name')});
+        this._nameRow = new Adw.EntryRow({title: T('Account Name')});
         this._nameRow.connect('changed', () => this._onFieldChanged());
         detailGroup.add(this._nameRow);
 
-        this._uidRow = new Adw.EntryRow({title: _('Genshin UID')});
+        this._uidRow = new Adw.EntryRow({title: T('Genshin UID')});
         this._uidRow.connect('changed', () => this._onFieldChanged());
         detailGroup.add(this._uidRow);
 
         this._serverRow = new Adw.ComboRow({
-            title: _('Server'),
-            model: Gtk.StringList.new(SERVER_NAMES),
+            title: T('Server'),
+            model: Gtk.StringList.new(serverNames()),
         });
         this._serverRow.connect('notify::selected', () => this._onFieldChanged());
         detailGroup.add(this._serverRow);
 
         const cookieGroup = new Adw.PreferencesGroup({
-            title: _('HoYoLAB Cookies (v2)'),
-            description: _(
+            title: T('HoYoLAB Cookies (v2)'),
+            description: T('hoyolab_cookies_desc',
                 'Open <a href="https://www.hoyolab.com">hoyolab.com</a>, log in, '
-                + 'then F12 → Application → Cookies → https://www.hoyolab.com.\n'
+                + 'then F12 \u2192 Application \u2192 Cookies \u2192 https://www.hoyolab.com.\n'
                 + 'Copy the <b>value</b> for each cookie named with _v2 suffix.'),
         });
         page.add(cookieGroup);
@@ -274,17 +269,17 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
 
     _buildModulesPage(window) {
         const page = new Adw.PreferencesPage({
-            title: _('Modules'),
+            title: T('Modules'),
             icon_name: 'application-x-addon-symbolic',
         });
         window.add(page);
 
-        const selGroup = new Adw.PreferencesGroup({title: _('Select Account')});
+        const selGroup = new Adw.PreferencesGroup({title: T('Select Account')});
         page.add(selGroup);
 
         this._moduleAccountList = Gtk.StringList.new([]);
         this._moduleAccountCombo = new Adw.ComboRow({
-            title: _('Account'),
+            title: T('Account'),
             model: this._moduleAccountList,
         });
         selGroup.add(this._moduleAccountCombo);
@@ -297,8 +292,8 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         });
 
         this._moduleGroup = new Adw.PreferencesGroup({
-            title: _('Feature Modules'),
-            description: _('Enable, disable, or reorder features in the popup menu'),
+            title: T('Feature Modules'),
+            description: T('Enable, disable, or reorder features in the popup menu'),
         });
         page.add(this._moduleGroup);
 
@@ -345,7 +340,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
                 const notifyOn = enabled[notifyKey] !== false;
                 const bellBtn = Gtk.ToggleButton.new_with_label(notifyOn ? '●' : '○');
                 bellBtn.active = notifyOn;
-                bellBtn.tooltip_text = _('Toggle notifications');
+                bellBtn.tooltip_text = T('Toggle notifications');
                 bellBtn.valign = Gtk.Align.CENTER;
                 bellBtn.connect('toggled', () => {
                     if (this._loading) return;
@@ -365,11 +360,11 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
             arrowBox.valign = Gtk.Align.CENTER;
 
             const upBtn = Gtk.Button.new_with_label('\u25B2');
-            upBtn.tooltip_text = _('Move up');
+            upBtn.tooltip_text = T('Move up');
             upBtn.valign = Gtk.Align.CENTER;
 
             const downBtn = Gtk.Button.new_with_label('\u25BC');
-            downBtn.tooltip_text = _('Move down');
+            downBtn.tooltip_text = T('Move down');
             downBtn.valign = Gtk.Align.CENTER;
 
             upBtn.sensitive = i > 0;
@@ -392,7 +387,7 @@ export default class GenshinResinPreferences extends ExtensionPreferences {
         const hideDoneKey = 'hide_exploration_done';
         const hideDoneOn = enabled[hideDoneKey] === true;
         const hideRow = new Adw.SwitchRow({
-            title: _('Hide completed regions'),
+            title: T('Hide completed regions'),
         });
         hideRow.active = hideDoneOn;
         hideRow.connect('notify::active', () => {

@@ -1,21 +1,22 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {T} from './i18n.js';
 
 export const RESIN_SECONDS = 480;
 
 export function fmtDuration(seconds) {
-    if (seconds <= 0) return 'Done';
+    if (seconds <= 0) return T('common.done', 'Done');
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    if (h > 0) return `${h}${T('common.hour', 'h')} ${m}${T('common.min', 'm')}`;
+    return `${m}${T('common.min', 'm')}`;
 }
 
 export function fmtCompact(seconds) {
-    if (seconds <= 0) return 'Full';
+    if (seconds <= 0) return T('common.full', 'Full');
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}h${m}m`;
-    return `${m}m`;
+    if (h > 0) return `${h}${T('common.hour', 'h')}${m}${T('common.min', 'm')}`;
+    return `${m}${T('common.min', 'm')}`;
 }
 
 export function fmtTimer(seconds) {

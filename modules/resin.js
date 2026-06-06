@@ -68,7 +68,7 @@ export default class ResinModule extends Module {
         const {nextTick} = this.getEstimate();
         if (!this._nextTickItem) return;
         this._nextTickItem.label.text = nextTick > 0
-            ? `\u21BB Next resin: ${fmtTimer(nextTick)}`
+            ? `\u21BB ${T('resin.next_resin', 'Next resin')}: ${fmtTimer(nextTick)}`
             : '';
         this._nextTickItem.visible = nextTick > 0;
     }

@@ -14,14 +14,12 @@ const API_LANG_MAP = {
 
 let _lang = 'en';
 let _cache = {};
-let _inited = false;
 
 function _detectSystemLang() {
     const names = GLib.get_language_names();
     for (const name of names) {
         const parts = name.split(/[_.@]/);
         const short = parts[0];
-        // Chinese locales have region suffix: zh_CN, zh_TW
         if (short === 'zh' && parts[1]) {
             const full = short + '_' + parts[1].toLowerCase();
             if (SUPPORTED.includes(full))
@@ -31,6 +29,24 @@ function _detectSystemLang() {
             return short;
     }
     return 'en';
+}
+
+function _loadFileSync(file) {
+    const loop = new GLib.MainLoop(null, false);
+    let ok = false;
+    let contents = null;
+    file.load_contents_async(null, (f, res) => {
+        try {
+            const [loadOk, loadContents] = f.load_contents_finish(res);
+            if (loadOk) {
+                ok = true;
+                contents = loadContents;
+            }
+        } catch (_) {}
+        loop.quit();
+    });
+    loop.run();
+    return [ok, contents];
 }
 
 function _loadFromDisk(lang) {
@@ -47,7 +63,7 @@ function _loadFromDisk(lang) {
             if (!name.endsWith('.json')) continue;
             const mod = name.replace('.json', '');
             const file = Gio.File.new_for_path(GLib.build_filenamev([dir, name]));
-            const [ok, contents] = file.load_contents(null);
+            const [ok, contents] = _loadFileSync(file);
             if (ok) {
                 try {
                     result[mod] = JSON.parse(new TextDecoder().decode(contents));
@@ -66,7 +82,6 @@ function _init() {
     const lang = _detectSystemLang();
     _lang = lang;
     _cache = _loadFromDisk(lang);
-    _inited = true;
 }
 
 _init();
@@ -91,7 +106,11 @@ export function apiLang() {
 }
 
 export function T(key, fallback) {
-    const [mod, str] = key.split('.');
+    const idx = key.indexOf('.');
+    if (idx === -1)
+        return _cache['common']?.[key] || fallback || key;
+    const mod = key.slice(0, idx);
+    const str = key.slice(idx + 1);
     return _cache[mod]?.[str] || fallback || key;
 }
 
