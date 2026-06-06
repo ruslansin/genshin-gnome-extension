@@ -47,9 +47,9 @@ export default class ExpeditionsModule extends Module {
         const allDone = exps.length > 0
             && exps.every(e => e.status === 'Finished');
 
-    this._guard.arm();
-    const notifyOn = this._account?.modules?.notify_expeditions !== false;
-    this._guard.check('done', allDone,
-        'Expeditions done', 'All expeditions have returned', notifyOn);
+        const notifyOn = this._account?.modules?.notify_expeditions !== false;
+        this._guard.check('done', allDone,
+            'Expeditions done', 'All expeditions have returned', notifyOn);
+        this._guard.arm();
     }
 }

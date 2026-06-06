@@ -37,9 +37,9 @@ export default class TransformerModule extends Module {
             this._item.label.text = '\u2697 Transformer: Not obtained';
         }
 
-    this._guard.arm();
-    const notifyOn = this._account?.modules?.notify_transformer !== false;
-    this._guard.check('ready', ready,
-        'Transformer ready', 'Parametric Transformer is available', notifyOn);
+        const notifyOn = this._account?.modules?.notify_transformer !== false;
+        this._guard.check('ready', ready,
+            'Transformer ready', 'Parametric Transformer is available', notifyOn);
+        this._guard.arm();
     }
 }

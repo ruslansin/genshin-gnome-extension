@@ -36,10 +36,10 @@ export default class ResinModule extends Module {
         this._resinItem.label.text =
             `\u25C6 Resin: ${data.current_resin}/${data.max_resin}  \u2192 ${fmtDuration(resinSec)}`;
 
-    this._guard.arm();
-    const notifyOn = this._account?.modules?.notify_resin !== false;
-    this._guard.check('full', data.current_resin >= data.max_resin,
-        'Resin is full!', `${data.current_resin}/${data.max_resin}`, notifyOn);
+        const notifyOn = this._account?.modules?.notify_resin !== false;
+        this._guard.check('full', data.current_resin >= data.max_resin,
+            'Resin is full!', `${data.current_resin}/${data.max_resin}`, notifyOn);
+        this._guard.arm();
     }
 
     getEstimate() {

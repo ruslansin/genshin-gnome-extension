@@ -27,9 +27,9 @@ export default class CurrencyModule extends Module {
         this._item.label.text =
             `\u2302 Realm Currency: ${coin}/${maxCoin}  \u2192 ${fmtDuration(coinSec)}`;
 
-    this._guard.arm();
-    const notifyOn = this._account?.modules?.notify_currency !== false;
-    this._guard.check('capped', coin >= maxCoin,
-        'Realm Currency reached', `${coin}/${maxCoin}`, notifyOn);
+        const notifyOn = this._account?.modules?.notify_currency !== false;
+        this._guard.check('capped', coin >= maxCoin,
+            'Realm Currency reached', `${coin}/${maxCoin}`, notifyOn);
+        this._guard.arm();
     }
 }
