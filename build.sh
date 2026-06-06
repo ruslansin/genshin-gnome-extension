@@ -8,7 +8,7 @@ echo "==> Generating module metadata..."
 {
     echo 'export const MODULE_KEYS = ['
     # Default order matching the static imports in index.js
-    for key in resin commissions bosses expeditions exploration abyss currency transformer; do
+    for key in resin commissions bosses expeditions exploration abyss theater daily currency transformer; do
         echo "  '$key',"
     done
     echo '];'

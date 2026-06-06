@@ -10,6 +10,8 @@ import CurrencyModule from './currency.js';
 import TransformerModule from './transformer.js';
 import AbyssModule from './abyss.js';
 import ExplorationModule from './exploration.js';
+import TheaterModule from './theater.js';
+import DailyModule from './daily.js';
 import ErrorModule from './error.js';
 import AccountNameModule from './account-name.js';
 
@@ -22,6 +24,8 @@ export {
     TransformerModule,
     AbyssModule,
     ExplorationModule,
+    TheaterModule,
+    DailyModule,
     ErrorModule,
     AccountNameModule,
 };
@@ -35,4 +39,6 @@ export const MODULE_REGISTRY = {
     transformer: TransformerModule,
     abyss: AbyssModule,
     exploration: ExplorationModule,
+    theater: TheaterModule,
+    daily: DailyModule,
 };

@@ -16,11 +16,13 @@ GNOME Shell extension that shows your Genshin Impact real-time resources in the 
   - Live next-resin countdown (per-second timer)
   - Daily commissions status
   - Weekly boss discount claims remaining
-  - Expedition countdown timers per character
+  - Expedition timers (collapsible accordion)
   - Spiral Abyss progress (floor, stars, time left)
-  - Exploration progress (per-region %, parent-child hierarchy)
+  - Imaginarium Theater status (act, medals, season countdown)
+  - Exploration progress (collapsible accordion, parent-child hierarchy)
   - Realm currency + time until cap
   - Parametric Transformer status
+  - Daily check-in reminder (claimed/not claimed)
   - Copy UID to clipboard
 - **Desktop notifications** — per-module alerts with individual on/off toggles
 - **Automatic refresh** via HoYoLAB Battle Chronicle API
@@ -54,29 +56,18 @@ Main
 ✔ Commissions: 4/4 (claimed)
 ⚔ Weekly Bosses: 3/3 remaining
 ───────────────────
-Expeditions: 5/5
-   ⏳ 02:34:11
-   ⏳ 02:34:11
-   ⏳ 02:34:11
-   ⏳ 02:34:11
-   ⏳ 02:34:11
+Expeditions: 5/5 ▸
 ───────────────────
 ⚔ Spiral Abyss: Floor 12-3  ★ 36/36  → 15d 6h
 ───────────────────
-Exploration: 3/17 complete (avg 52.9%)
-   Nod-Krai: 72.0%
-   Natlan: 34.0%
-   Chenyu Vale: 0.0%
-      Upper Vale: 59.3%
-      Southern Mountain: 68.7%
-   Fontaine: 27.0%
-   Sumeru: 24.0%
-   The Chasm: 46.9%
-      Underground Mines: 52.2%
-   ...
+🎭 Imaginarium Theater: Act 6  ★ 5  → 23d 7h
+───────────────────
+Exploration: 3/17 complete (avg 52.9%) ▸
 ───────────────────
 ⌂ Realm Currency: 630/2400  → 58h 20m
 ⚗ Transformer: Ready!
+───────────────────
+☑ Daily Check-in: Claimed (15/31)
 ───────────────────
 Copy UID
 Refresh Now
@@ -174,9 +165,11 @@ modules/             — Plugin-style feature modules
   resin.js           —   Resin counter + countdown + full notification
   commissions.js     —   Daily commissions
   bosses.js          —   Weekly boss discounts
-  expeditions.js     —   Expedition timers + done notification
+  expeditions.js     —   Expedition timers + done notification (accordion)
   abyss.js           —   Spiral Abyss progress (independent API)
-  exploration.js     —   Exploration progress per region (independent API, parent-child hierarchy)
+  exploration.js     —   Exploration progress per region (independent API, accordion)
+  theater.js         —   Imaginarium Theater (independent API)
+  daily.js           —   Daily check-in reminder (independent API)
   currency.js        —   Realm currency + cap notification
   transformer.js     —   Parametric transformer + ready notification
   error.js           —   Error display
