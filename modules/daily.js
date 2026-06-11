@@ -1,3 +1,4 @@
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Soup from 'gi://Soup';
 
@@ -13,6 +14,7 @@ export const notifications = true;
 
 const API_BASE = 'https://sg-hk4e-api.hoyolab.com/event/sol';
 const ACT_ID = 'e202102251931481';
+const CHECKIN_URL = 'https://act.hoyolab.com/ys/event/signin-sea-v3/index.html?act_id=' + ACT_ID;
 const DS_SALT = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36';
 
@@ -121,9 +123,10 @@ export default class DailyModule extends Module {
         }
 
         const notifyOn = this._account?.modules?.notify_daily !== false;
-        this._guard.check('not_signed', !signed,
+        this._guard.checkAction('not_signed', !signed,
             T('daily.notification_title', 'Daily check-in not claimed'),
-            T('daily.notification_body', 'Remember to claim your daily Hoyolab reward'), notifyOn);
+            T('daily.notification_body', 'Remember to claim your daily Hoyolab reward'), notifyOn,
+            () => Gio.AppInfo.launch_default_for_uri(CHECKIN_URL, null));
         this._guard.arm();
 
         return text;

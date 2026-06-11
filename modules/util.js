@@ -1,4 +1,5 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import {T} from './i18n.js';
 
 export const RESIN_SECONDS = 480;
@@ -42,6 +43,29 @@ export class NotifyGuard {
         if (condition && !this._flags[key]) {
             this._flags[key] = true;
             Main.notify(title, message);
+        }
+        if (!condition)
+            this._flags[key] = false;
+    }
+
+    checkAction(key, condition, title, message, enabled, callback) {
+        if (!this._armed || !enabled) return;
+        if (condition && !this._flags[key]) {
+            this._flags[key] = true;
+            const source = new MessageTray.Source({
+                title,
+                'icon-name': 'dialog-information-symbolic',
+            });
+            Main.messageTray.add(source);
+            const notification = new MessageTray.Notification({
+                source,
+                title,
+                body: message,
+            });
+            notification.connect('activated', () => {
+                callback();
+            });
+            source.addNotification(notification);
         }
         if (!condition)
             this._flags[key] = false;
